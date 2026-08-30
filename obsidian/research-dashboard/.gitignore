@@ -1,0 +1,5 @@
+node_modules/
+*.map
+coverage/
+data.json
+.DS_Store
