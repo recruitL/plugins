@@ -22,6 +22,15 @@ plugins/
 | Zotero | — | Reserved | Future Zotero integrations will live here. |
 | Edge | — | Reserved | Future Microsoft Edge extensions will live here. |
 
+## Install Research Dashboard with BRAT
+
+1. Install and enable [BRAT](https://github.com/TfTHacker/obsidian42-brat) in Obsidian.
+2. Open the command palette and run `BRAT: Add a beta plugin for testing`.
+3. Enter `recruitL/plugins` as the repository.
+4. Track the latest version, then enable **Research Dashboard** under Community plugins.
+
+BRAT installs the release assets `main.js`, `manifest.json`, and `styles.css`. The repository currently exposes Research Dashboard as its BRAT-installable Obsidian plugin.
+
 ## Repository principles
 
 - Runtime settings and personal vault data are never committed.

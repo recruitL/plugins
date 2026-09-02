@@ -25,6 +25,15 @@ A quiet, local-first Obsidian research home screen. It reads vault metadata loca
 
 当 Phycat 主题通过 Style Settings 启用 `Cards (Floating)` 时，插件会仅在 Research Dashboard 为活动标签时撤销主题的外层卡片和透明背景；普通笔记、侧栏和其他标签仍保留原有主题样式。
 
+### 使用 BRAT 安装
+
+1. 在 Obsidian 中安装并启用 [BRAT](https://github.com/TfTHacker/obsidian42-brat)。
+2. 打开命令面板，运行 `BRAT: Add a beta plugin for testing`。
+3. 输入仓库地址 `recruitL/plugins`。
+4. 选择跟踪最新版本，然后在“第三方插件”中启用 Research Dashboard。
+
+BRAT 会从 GitHub Release 下载 `main.js`、`manifest.json` 和 `styles.css`。当前仓库只将 Research Dashboard 暴露为 BRAT 可安装的 Obsidian 插件。
+
 ### 手动安装
 
 1. 下载本目录中的 `main.js`、`manifest.json` 和 `styles.css`。
