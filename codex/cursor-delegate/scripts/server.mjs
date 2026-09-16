@@ -1,5 +1,6 @@
 import { Bridge } from "./bridge.mjs";
 import { pathToFileURL } from "node:url";
+import { HostInteractionProbe } from "./host-interaction.mjs";
 const str = { type: "string", minLength: 1, maxLength: 100000 };
 const sid = { session_id: str };
 function tool(
@@ -20,6 +21,11 @@ function tool(
   };
 }
 export const tools = [
+  tool(
+    "cursor_probe_host_interaction",
+    "Diagnostic only: ask the host to show a harmless native form. Does not start Cursor, grant permissions or unlock sessions. A response alone does not prove human interaction. Invoke only for explicit integration testing.",
+    {},
+  ),
   tool(
     "cursor_status",
     "Read actual workspace, execution state and safety policy. No execution.",
@@ -121,10 +127,16 @@ function validate(schema, value) {
   )
     throw Error("Invalid integer");
 }
-export async function dispatch(bridge, name, args) {
+export async function dispatch(bridge, name, args, host) {
   const t = tools.find((t) => t.name === name);
   if (!t) throw Error("Unknown tool");
   validate(t.inputSchema, args);
+  if (name === "cursor_probe_host_interaction") {
+    if (!host) throw Error("Host transport unavailable");
+    return await host.run();
+  }
+  if (name === "cursor_status" && host)
+    return { ...bridge.status(), host_interaction: host.status() };
   return await bridge[name.slice(7)](args);
 }
 export function serve() {
@@ -137,18 +149,21 @@ export function serve() {
     inflight = 0;
   const send = (msg) =>
     process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...msg }) + "\n");
+  const host = new HostInteractionProbe(send);
   async function handle(m) {
     if (!m || typeof m !== "object" || m.jsonrpc !== "2.0") {
       send({ id: null, error: { code: -32600, message: "Invalid request" } });
       return;
     }
+    if (host.receive(m)) return;
     if (m.id === undefined) return;
     try {
       let result;
       if (m.method === "initialize") {
+        if (initialized) throw Error("Already initialized");
         initialized = true;
         result = {
-          protocolVersion: "2024-11-05",
+          protocolVersion: host.configure(m.params),
           capabilities: { tools: {} },
           serverInfo: { name: "cursor-delegate", version: "0.1.0" },
           instructions:
@@ -163,6 +178,7 @@ export function serve() {
             bridge,
             m.params?.name,
             m.params?.arguments ?? {},
+            host,
           );
           result = { content: [{ type: "text", text: JSON.stringify(data) }] };
         } catch (e) {
@@ -221,7 +237,10 @@ export function serve() {
       }
     }
   });
-  process.stdin.on("end", () => bridge.stop("closed"));
+  process.stdin.on("end", () => {
+    host.cancel();
+    bridge.stop("closed");
+  });
   for (const signal of ["SIGTERM", "SIGINT"])
     process.on(signal, () => {
       bridge.terminate();

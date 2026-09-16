@@ -52,3 +52,16 @@ project authorization; do not require a new approval for ordinary work.
    releases it after verification. Preserve useful receipts/diffs/test output,
    without building an extra task database. Report unit, protocol simulation,
    actual Cursor and App verification separately, including anything unverified.
+
+
+## Host interaction diagnostic
+
+Only for explicit plugin integration testing, `cursor_probe_host_interaction`
+requests a harmless native MCP form if the host advertises that capability.
+Ask the human to choose decline/cancel in the actual App dialog. It never starts
+Cursor, reads project files, grants permission, resets a latch or resumes a
+session. A host response may be automated: never infer human approval from
+`action=accept`. `grants_permissions` and `human_identity_verified` remain false.
+Report whether the human actually saw a dialog separately from the wire result.
+Unsupported capability, cancellation and timeout are diagnostic outcomes; do
+not turn them into retries or a fallback permission-grant path.

@@ -8,7 +8,7 @@
 | --- | --- | --- |
 | 纯函数/入参 | realpath 越界与符号链接、未知模型/force/批准字段 | 通过；目录检查不是沙箱 |
 | ACP 模拟子进程 | 同会话两轮、普通问题、计划、权限副作用哨兵、断线加载一次、取消、超时 | 通过；提供者是测试夹具，无真实模型 |
-| MCP 实际 stdio 子进程 | initialize、9 个工具发现、status、未配置根目录时拒绝启动、拒绝虚构批准工具 | 通过；这是桥接服务验证，不是 App 验证 |
+| MCP 实际 stdio 子进程 | initialize、10 个工具发现、status、未配置根目录时拒绝启动、拒绝虚构批准工具 | 通过；这是桥接服务验证，不是 App 验证 |
 | 插件结构 | 官方 plugin validator、Skill validator | 通过（隔离 Python 环境安装 PyYAML） |
 | 独立安装器 | 临时 HOME/CODEX_HOME 中运行 install-local.mjs，调用真实 Codex marketplace add/plugin add | 通过；只写自行创建的安装测试目录 |
 | 本机安装 | 官方脚手架 personal marketplace；codex plugin add/list | 显示 installed=true、enabled=true，缓存路径为 personal/cursor-delegate/0.1.0（后续更新可能带 cachebuster） |
@@ -16,7 +16,7 @@
 | 安装缓存实际运行 | 从 personal 安装缓存启动 MCP，调用 cursor_status | 返回 configured=true 和测试项目路径；仍非 App 调用 |
 | App 内发现/调用 | 新 App 任务实际调用 cursor_status/start/prompt/wait/result；回读任务记录与权限回执 | 发现、启动、派工调用已验证；后续因权限请求被桥接取消，端到端未通过 |
 
-`npm test` 当前 11 项全部通过。新增真实权限请求形状回归与文本问题同会话答复测试；仍是确定性测试。开发中曾出现恢复等待进程退出事件的测试失败，已修复“事件已发生后才订阅”的顺序问题，随后完整重跑 9/9 通过。测试分类如上，不能把全部称为单元测试，更不能等同真实联调。
+`npm test` 当前 17 项全部通过。新增真实权限请求形状回归与文本问题同会话答复测试；仍是确定性测试。开发中曾出现恢复等待进程退出事件的测试失败，已修复“事件已发生后才订阅”的顺序问题，随后完整重跑 9/9 通过。测试分类如上，不能把全部称为单元测试，更不能等同真实联调。
 
 ## A–E 对照
 
@@ -54,3 +54,17 @@ provider reason: Not in allowlist: head -50
 这不是原生安全授权问题的解决方案，也不是新版本真实闭环通过的证据。尚未接通可信人类批准；对已授权普通代码工作所需权限的安全处理仍未完成。当前不要求用户再次登录、开放父目录或扩大全局 allowlist。
 
 失败的 Cursor 会话保持停止，本轮没有恢复、重试或重新委派。新的真实验收须作为明确的新测试运行，并继续遵守现有授权边界。测试未产生 add.mjs 或测试文件（本轮只读检查测试目录）。PR 保持草稿，不合并、不发版。
+
+
+## 宿主交互通道探针
+
+本机 0.153.4 的 `app-server generate-ts --experimental` 导出包含
+`mcpServer/elicitation/request` 和 form/accept/decline/cancel 类型。它证明本机有相应协议结构，不证明当前 App 会显示原生弹窗，更不证明任何表单答复都来自人类。
+
+官方源代码对照（commit `39a99a6c36d0b8c44a716eae28d5133da28f55e6`）：
+- [elicitation 客户端](https://github.com/openai/codex/blob/39a99a6c36d0b8c44a716eae28d5133da28f55e6/codex-rs/rmcp-client/src/elicitation_client_service.rs) 区分通用表单和带能力限制的 userVerification。
+- [配置 MCP 的 userVerification 测试](https://github.com/openai/codex/blob/39a99a6c36d0b8c44a716eae28d5133da28f55e6/codex-rs/core/tests/suite/mcp_user_verification.rs) 明确拒绝配置型服务器自行启用该能力；不能看到源码有新功能就宣称本插件可以使用。本机与公开源码版本不同，此处仅作接口边界参考。
+
+新增无副作用工具 `cursor_probe_host_interaction`。仅收集宿主声明的表单能力及诊断回复，不持有 Bridge 引用、不调用 Cursor，不提供任何授权或解锁能力。模型填写 user_approved 被入参校验拒绝；原生表单即使返回 accept，仍不构成可信人类授权。只有匹配当前请求 ID 的回复可完成探针，过期、伪造、重复、缺失能力、拒绝、错误和超时均不产生权限副作用。
+
+验证：5 项探针单元测试和 1 项真实 MCP stdio / 模拟宿主表单往返测试通过，总计 17 项。**当前 App 原生弹窗尚未验证**，未自动发送请求，未重跑已拒绝的 Cursor 任务。
