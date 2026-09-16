@@ -67,4 +67,18 @@ provider reason: Not in allowlist: head -50
 
 新增无副作用工具 `cursor_probe_host_interaction`。仅收集宿主声明的表单能力及诊断回复，不持有 Bridge 引用、不调用 Cursor，不提供任何授权或解锁能力。模型填写 user_approved 被入参校验拒绝；原生表单即使返回 accept，仍不构成可信人类授权。只有匹配当前请求 ID 的回复可完成探针，过期、伪造、重复、缺失能力、拒绝、错误和超时均不产生权限副作用。
 
-验证：5 项探针单元测试和 1 项真实 MCP stdio / 模拟宿主表单往返测试通过，总计 17 项。**当前 App 原生弹窗尚未验证**，未自动发送请求，未重跑已拒绝的 Cursor 任务。
+验证：5 项探针单元测试和 1 项真实 MCP stdio / 模拟宿主表单往返测试通过，总计 17 项。这些测试不证明 App 会展示表单。
+
+### App 探针实际结果（2026-09-17）
+
+旧验证任务没有发现新工具；随后当前 App 任务加载新版并真实调用一次 `cursor_probe_host_interaction`，返回：
+
+```json
+{"protocol_version":"2025-06-18","form_capability_advertised":true,"last_result":{"outcome":"host_response","action":"decline","probe_checkbox":false,"grants_permissions":false,"human_identity_verified":false}}
+```
+
+用户明确确认**没有看到弹窗**。因此工具发现和 MCP 请求往返通过，人工可见弹窗检查未通过，不能将 decline 记作用户拒绝，更不能据此宣称可信人工授权已接通。未启动 Cursor、派工、恢复会话或代答表单。
+
+当前任务宿主声明 `approval_policy=never`。官方[配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)将 never 定义为非交互模式，并说明 MCP elicitation 是否展示受审批策略控制；这与立即返回 decline 且没有 UI 的现象一致。但回执没有具体拒绝原因，尚不能确定宿主内部的处理分支，也没有自动审批审查器拒绝的证据。
+
+当前环境不具备已验证的人工授权通道。只有宿主由用户配置为允许人工交互后，才有条件重新做这项无副作用检查；即使届时出现表单，仍须核验回复来源能否被模型伪造，不能直接把通用表单接到 Cursor 权限放行。未修改任何宿主审批策略，未反复探测，PR 继续保持草稿。
