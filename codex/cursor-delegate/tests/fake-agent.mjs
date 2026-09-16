@@ -1,18 +1,18 @@
 import readline from "node:readline";
 import { writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 let promptId, phase, promptText;
 const send = (m) =>
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...m }) + "\n");
 const reply = (id, result) => send({ id, result });
-const finish = () => {
+const finish = (text = "fixture completed") => {
   send({
     method: "session/update",
     params: {
       sessionId: "provider-1",
       update: {
         sessionUpdate: "agent_message_chunk",
-        content: { type: "text", text: "fixture completed" },
+        content: { type: "text", text },
       },
     },
   });
@@ -31,7 +31,42 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
   else if (m.method === "session/prompt") {
     promptId = m.id;
     promptText = m.params.prompt[0].text;
-    if (promptText.includes("FIXTURE_PERMISSION")) {
+    if (promptText.includes("FIXTURE_PARENT_LISTING")) {
+      phase = "permission";
+      // Real ACP request shape observed in App; never execute the displayed shell command.
+      send({
+        id: 700,
+        method: "session/request_permission",
+        params: {
+          sessionId: "provider-1",
+          toolCall: {
+            toolCallId: "parent-listing",
+            title: `\`ls -la ${process.cwd()} && ls -la ${dirname(process.cwd())} 2>/dev/null | head -50\``,
+            kind: "execute",
+            status: "pending",
+            content: [
+              {
+                type: "content",
+                content: { type: "text", text: "Not in allowlist: head -50" },
+              },
+            ],
+          },
+          options: [
+            { optionId: "allow-once", name: "Allow once", kind: "allow_once" },
+            {
+              optionId: "allow-always",
+              name: "Allow always",
+              kind: "allow_always",
+            },
+            { optionId: "reject-once", name: "Reject", kind: "reject_once" },
+          ],
+        },
+      });
+    } else if (promptText.includes("FIXTURE_TEXT_QUESTION")) {
+      finish(
+        "Question: named or default export? Plan: implement add and run built-in Node tests. Waiting for Codex before implementation.",
+      );
+    } else if (promptText.includes("FIXTURE_PERMISSION")) {
       phase = "permission";
       send({
         id: 700,

@@ -2,7 +2,7 @@
 
 Codex App → 本插件 MCP 服务 → Cursor 官方 ACP。Codex 负责派工、技术决策、检查实际改动和返修；Cursor 保持一个会话承担实现工作。没有任务数据库、独立界面、自动付费或云端总控。
 
-**当前未达到完整验收标准。** 本机安装已完成，真实 Cursor 认证受阻，App 内工具调用未验证。安全升级目前只支持拒绝执行，尚未接通可信的人类批准通道。不能作为已验证的无人值守生产工具。详见 [验证记录](VERIFICATION.md)。
+**当前未达到完整验收标准。** 本机安装、真实 Cursor 认证和 App 内工具调用已验证；App 代码任务在准备阶段因权限请求被插件取消。安全升级目前只支持拒绝执行，尚未接通可信的人类批准通道。不能作为已验证的无人值守生产工具。详见 [验证记录](VERIFICATION.md)。
 
 ## 安装、启用
 
@@ -27,7 +27,7 @@ node scripts/install-local.mjs /absolute/path/to/disposable-test-project
 
 工具顺序：`cursor_status` → `cursor_start` → `cursor_prompt` → `cursor_wait` → 按需 `cursor_answer` → `cursor_result`。Codex 阅读真实文件和测试结果后，用同一 session 的 `cursor_prompt` 提出修正，最后 `cursor_close`。
 
-- 问题和计划由 Codex 按实际内容审阅；不会一律回复“同意”，也不会默认要求用户批准。
+- 问题和计划由 Codex 按实际内容审阅；不会一律回复“同意”，也不会默认要求用户批准。已有原生问答工具时使用回调；没有时以文本返回并结束本轮，由 Codex 在同会话答复。无需去父目录寻找通信协议。
 - 用户项目授权为外层约束；每次 `scope` 为内层派工范围，Codex 可在外层授权内调整。
 - 每次派工使用新的 `request_id`。观察超时只重新读取状态，不能重复发送原任务。
 - Cursor 活动期间，Codex 不写它负责的文件；工具始终回报规范化 `cwd`、会话、轮次和进程状态。
@@ -54,7 +54,7 @@ node scripts/probe.mjs /absolute/path/to/disposable-test-project
 探测只做真实 ACP 初始化、认证和建会话，不提交模型任务。认证超时会终止进程，不转为强制模式、不写凭据、不无限重试。
 
 - `waiting`：查看完整 pending，Codex 答复普通问题或计划。
-- `blocked`：查看 `cursor_result` 的 safety_request；没有相应新增授权和可信通道就保持停止。
+- `blocked`：`cursor_status.blocking` 直接显示拒绝来源、具体操作及原生原因；`cursor_result.safety_request` 保留原始请求。origin=bridge 表示插件收到权限请求后取消，不能把它混同为 Cursor 原生拒绝。没有相应新增授权和可信通道就保持停止。
 - `disconnected`：先检查真实文件及进程，确认已执行内容。若 Cursor 声明支持 session/load，`cursor_recover` 最多尝试一次加载同会话，不重放原 prompt。
 - `cancelled`：永久停止，不恢复。正在工作的任务用 `cursor_cancel` 取消。
 - MCP 服务重启丢失内存会话，自动恢复未实现；不能把不确定状态当作未执行而重复派工。

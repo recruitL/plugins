@@ -9,7 +9,7 @@ import {
   rmSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { Bridge, boundedPath } from "../scripts/bridge.mjs";
@@ -199,4 +199,48 @@ test("realpath rejects symlink escape; extra executable/model/approval fields re
     dispatch(b, "cursor_start", { cwd: root, model: "invented" }),
     /Unknown field/,
   );
+});
+
+test("observed App parent-listing request reports bridge denial and never grants allow-always", async (t) => {
+  const { b, root } = setup(t);
+  const s = await b.start({ cwd: root });
+  prompt(b, s, "FIXTURE_PARENT_LISTING");
+  const blocked = await until(b, "blocked");
+  assert.deepEqual(blocked.blocking, {
+    origin: "bridge",
+    trigger: "cursor_permission_request",
+    reason: "no_trusted_approval_channel",
+    cwd: root,
+    task_scope: "test directory only",
+    proposed_action: `\`ls -la ${root} && ls -la ${dirname(root)} 2>/dev/null | head -50\``,
+    provider_reason: "Not in allowlist: head -50",
+    retry_allowed: false,
+  });
+  assert.equal(existsSync(join(root, "FORBIDDEN")), false);
+  assert.equal(blocked.safety_latched, true);
+  const detail = b.result({ ...s, turn_id: blocked.turn_id });
+  assert.equal(detail.safety_request.options.length, 3);
+  assert.deepEqual(detail.blocking, blocked.blocking);
+  b.close(s);
+  await assert.rejects(b.start({ cwd: root }), /no new session/);
+});
+
+test("text question fallback is readable and accepts a same-session Codex follow-up", async (t) => {
+  const { b, root } = setup(t);
+  const s = await b.start({ cwd: root });
+  prompt(b, s, "FIXTURE_TEXT_QUESTION");
+  const first = await until(b, "completed");
+  const result = b.result({ ...s, turn_id: first.turn_id });
+  assert.equal(result.eof, true);
+  assert.match(result.text, /named or default export/);
+  assert.equal(first.pending, null);
+  prompt(
+    b,
+    s,
+    "Use a named export. Accept the scoped plan and proceed.",
+    "codex-answer-2",
+  );
+  const second = await until(b, "completed");
+  assert.equal(second.cursor_session_id, first.cursor_session_id);
+  assert.notEqual(second.turn_id, first.turn_id);
 });
