@@ -43,7 +43,7 @@ ACP `session/request_permission` 一律返回取消结果并终止会话；未�
 
 既有 Cursor 配置仍可能影响原生权限。插件拒绝带 Cursor MCP 配置的工作区和用户环境，避免附带工具取得额外权限；不会主动覆盖用户的 CLI 权限或认证。当前配置变更与实际沙箱行为仍需在部署环境单独验证。首轮只用无敏感内容的测试项目。
 
-## 宿主原生弹窗检查：当前未通过
+## 宿主原生弹窗检查：展示已验证，Cursor 权限未接通
 
 新版提供 `cursor_probe_host_interaction`，只用于本插件接入验证。它在宿主声明支持 MCP form elicitation 时请求一个原生测试表单；宿主未声明时返回 unsupported，不尝试其他授权路径。45 秒无人回复会取消。
 
@@ -91,3 +91,5 @@ codex plugin remove cursor-delegate@personal
 已检查 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin) 的实际源码、规则、配置与测试，提交 `ce257353ecae9061fe45d084cb80e2d0c46207cd`。该快照无许可证文件，GitHub license 字段为 null，因此未复制、修改或分发其代码/Skill。此实现独立编写，按本仓库 MIT 许可证提供。它没有继承上游的测试覆盖或兼容性保证。
 
 协议依据：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Cursor CLI 权限](https://cursor.com/docs/cli/reference/permissions)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)、[Codex MCP](https://developers.openai.com/codex/mcp)。没有照搬官方示例中的无条件 allow-once。
+
+最新实测补充：用户调整宿主权限后已看到并亲手批准无副作用探针。真实 Cursor 在同一会话完成技术问答和代码写入，但执行测试触发权限请求后仍被插件取消；整体闭环未通过。详见 [验证记录](VERIFICATION.md)。
