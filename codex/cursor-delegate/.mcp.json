@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "cursor-delegate": {
+      "command": "node",
+      "cwd": ".",
+      "args": ["scripts/server.mjs"]
+    }
+  }
+}
