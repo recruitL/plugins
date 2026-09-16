@@ -93,3 +93,5 @@ codex plugin remove cursor-delegate@personal
 协议依据：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Cursor CLI 权限](https://cursor.com/docs/cli/reference/permissions)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)、[Codex MCP](https://developers.openai.com/codex/mcp)。没有照搬官方示例中的无条件 allow-once。
 
 最新实测补充：用户调整宿主权限后已看到并亲手批准无副作用探针。真实 Cursor 在同一会话完成技术问答和代码写入，但执行测试触发权限请求后仍被插件取消；整体闭环未通过。详见 [验证记录](VERIFICATION.md)。
+
+真实生命周期测试补充：已完成文字对话后的断线加载、运行中取消及取消后禁止恢复通过（独立驱动，非 App MCP）。无对话的空会话加载返回 Invalid params；运行中代码写入的恢复仍未验证。

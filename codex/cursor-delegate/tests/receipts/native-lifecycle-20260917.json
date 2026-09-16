@@ -1,0 +1,47 @@
+{
+  "empty_session": {
+    "kind": "real Cursor ACP lifecycle, standalone harness; NOT App MCP",
+    "checks": [
+      {
+        "check": "start",
+        "state": "ready",
+        "cursor_session_id": "d6e5c8bb-aa49-4607-bf83-cca5e353957b",
+        "load_supported": true
+      }
+    ],
+    "error": "Invalid params"
+  },
+  "persisted_session": {
+    "kind": "real Cursor ACP lifecycle, standalone harness; NOT App MCP",
+    "checks": [
+      {
+        "check": "start",
+        "state": "ready",
+        "cursor_session_id": "89a8f938-a4a6-4d0e-8095-9f7063522df0",
+        "load_supported": true
+      },
+      {
+        "check": "persisted_turn",
+        "state": "completed",
+        "result": "LIFECYCLE_READY"
+      },
+      {
+        "check": "single_recovery",
+        "state": "ready",
+        "same_cursor_session": true,
+        "old_pid_gone": true,
+        "prompt_replayed": false
+      },
+      {
+        "check": "active_cancel",
+        "state": "cancelled",
+        "pid_gone": true,
+        "directory_empty": true
+      },
+      {
+        "check": "cancel_blocks_recovery",
+        "rejected_before_launch": true
+      }
+    ]
+  }
+}
