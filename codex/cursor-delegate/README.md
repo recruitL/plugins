@@ -2,7 +2,7 @@
 
 Codex App → 插件 MCP → Cursor 官方 ACP。Codex 决定技术方案、协调普通问题和计划、独立验收及安排返修；Cursor 负责实现。首版只使用一个执行会话。
 
-**真实原生实现与同会话返修已通过，独立测试 22/22；新版 App 接入未验证，整体未通过。** 当前 App 安装缓存仍是旧服务。本源码的默认入口及 Skill 已统一为上游候选，更新源码不等于更新 App。
+**真实原生实现与同会话返修已通过，独立测试 22/22；新版 App 接入未验证，整体未通过。** 本机 personal 安装缓存已更新为上游候选，但当前旧 App 任务仍连接旧服务；新版 App 工具调用尚未验证。更新安装缓存不等于当前任务已重载。
 
 直接加载固定版本的 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin)。上游没有许可证，因此不复制其源码；用户需保留单独检出目录。桥接没有重新实现通信和会话管理。详见 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。
 

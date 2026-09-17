@@ -293,3 +293,10 @@ provider reason: Not in allowlist: head -50
 - 已在插件工作区准备持久 CLI 副本、新建空白 app-upstream-test 目录及 staging/native-app-v2/cursor-delegate 包，待一次 App 测试授权；不替换全局 Cursor。此次包准备不将已完成的单次原生测试授权扩大为长期授权。
 
 离线安装回执：tests/receipts/upstream-package-install-20260917.json。真实代码闭环的 22/22 结果来自前一轮原生测试；本轮没有重复调用模型，不将两者混为一次 App 成功。
+
+
+## 2026-09-17 本机候选安装完成，等待 App 新任务加载
+
+用户回复“验证”后，按先前说明的单次 App 测试范围执行。通过当前真实 App 工具关闭旧会话，状态 closed、pid=null；没有恢复旧网络拒绝任务。备份旧插件和用户配置后，使用官方 cachebuster/plugin add 更新 personal 插件为 0.1.0+codex.20260917111258。回读真实缓存确认 scripts/upstream-entry.mjs、新 Skill 及唯一允许的 app-upstream-test 目录。没有更新全局 CLI、其他插件或 marketplace 条目。
+
+当前任务随后实际检查：cursor_start_session 不可调用，工具清单仍为旧的十个工具；cursor_status 仍返回旧已关闭会话。这证明安装完成但当前 App 任务未切换 MCP。尚未从 App 启动新版 Cursor，需新 App 任务加载；不要求重新登录。测试完成后的停用仍待执行，不能标为已完成。回执见 tests/receipts/upstream-app-install-20260917.json。
