@@ -2,7 +2,7 @@
 
 Codex App → 插件 MCP → Cursor 官方 ACP。Codex 决定技术方案、协调普通问题和计划、独立验收及安排返修；Cursor 负责实现。首版只使用一个执行会话。
 
-**真实原生实现与同会话返修已通过，独立测试 22/22；新版 App 接入未验证，整体未通过。** 本机 personal 安装缓存已更新为上游候选，但当前旧 App 任务仍连接旧服务；新版 App 工具调用尚未验证。更新安装缓存不等于当前任务已重载。
+**实际 Codex App 代码与返修闭环已通过：首轮独立测试 5/5，补改后 27/27，额外检查 3/3。候选已卸载停用。** 原生人工批准弹窗、全面权限拦截及系统隔离仍未验证，不宣称整体安全验收或生产可用。分层结果见 [VERIFICATION.md](VERIFICATION.md)。
 
 直接加载固定版本的 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin)。上游没有许可证，因此不复制其源码；用户需保留单独检出目录。桥接没有重新实现通信和会话管理。详见 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。
 
@@ -24,7 +24,7 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 本机启用
 
-**原生权限边界必须获得对应运行范围的明确授权。** 本次用户只批准了一次无敏感内容联调，不涵盖一般生产使用。没有后续授权时保留准备包，不启用实际 Cursor 工作。
+**原生权限边界必须获得对应运行范围的明确授权。** 用户授权的原生联调和单次 App 测试均已结束，不涵盖一般生产使用。候选保持卸载；没有后续授权时保留源码与准备包，不启用实际 Cursor 工作。
 
 已有 personal 安装时，按 Codex 官方 plugin-creator 更新流程操作：
 
@@ -54,4 +54,4 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 验证
 
-`npm test` 是本仓库测试，其中含历史旧服务回归；它不等于上游原生或 App 验证。准备后的包还需分别检查官方 plugin/Skill 校验、实际 MCP 初始化与工具发现、真实 Cursor 闭环、App 内调用。[VERIFICATION.md](VERIFICATION.md) 按时间保留证据，最新记录优先。
+`npm test` 是本仓库测试，其中含历史旧服务回归；它不等于上游原生或 App 验证。官方 plugin/Skill 校验、实际 MCP 初始化与工具发现、真实 Cursor 闭环和 App 内调用已有分层记录；其中的测试范围不同。详见 [VERIFICATION.md](VERIFICATION.md) 和[脱敏 App 摘要](tests/receipts/app-validation-summary-20260917.md)。
