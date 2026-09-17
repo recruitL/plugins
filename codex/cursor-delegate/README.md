@@ -1,8 +1,8 @@
-# Cursor Delegate（原生上游接入候选）
+# Cursor Delegate
 
 Codex App → 插件 MCP → Cursor 官方 ACP。Codex 决定技术方案、协调普通问题和计划、独立验收及安排返修；Cursor 负责实现。首版只使用一个执行会话。
 
-**实际 Codex App 代码与返修闭环已通过：首轮独立测试 5/5，补改后 27/27，额外检查 3/3。候选已卸载停用。** 原生人工批准弹窗、全面权限拦截及系统隔离仍未验证，不宣称整体安全验收或生产可用。分层结果见 [VERIFICATION.md](VERIFICATION.md)。
+**日常分工：Codex 派工、审阅和运行验证；Cursor 修改代码并在同一会话返修。** App 代码闭环已实测通过。用户已要求按此分工使用，不再把日常任务当成插件验证项目，也不在任务结束后自动卸载。历史测试结果见 [VERIFICATION.md](VERIFICATION.md)。
 
 直接加载固定版本的 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin)。上游没有许可证，因此不复制其源码；用户需保留单独检出目录。桥接没有重新实现通信和会话管理。详见 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。
 
@@ -24,7 +24,7 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 本机启用
 
-**原生权限边界必须获得对应运行范围的明确授权。** 用户授权的原生联调和单次 App 测试均已结束，不涵盖一般生产使用。候选保持卸载；没有后续授权时保留源码与准备包，不启用实际 Cursor 工作。
+配置用户实际选定的项目目录后启用；保留明确的目录范围，不扩大到整个用户目录。普通技术问题、计划和返修由 Codex 自主处理。插件不增加新的人类批准通道，不更改 Cursor 原有权限设置。
 
 已有 personal 安装时，按 Codex 官方 plugin-creator 更新流程操作：
 
@@ -40,7 +40,7 @@ node scripts/prepare-upstream-install.mjs \
 
 在已有授权覆盖且验证可用的环境中，可以说：“让 Cursor 完成这个修复，你审阅方案、检查真实改动并安排返修。”Codex 使用 `cursor_start_session → cursor_send_prompt → cursor_wait/cursor_session_status → cursor_read_result`；普通问答与计划由 Codex 回答，不作为用户审批关卡。完整读取结果后检查实际 cwd、文件和测试，再在同一会话返修。Cursor 工作期间不要同时修改相同文件。
 
-观察超时只检查同一任务，不重发 prompt。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。
+观察超时只检查同一任务，不重发 prompt。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。普通任务结束后保留插件安装，供下次派工。
 
 若看到旧 `cursor_status/cursor_prompt`，说明 App 仍加载旧缓存，不能据此重复登录。若候选启动失败，检查上游版本与改动状态、绝对路径和 CLI 参数支持。模型列表可能要求独立 API key，不能为列出模型擅自获取付费凭据；已验证流程使用上游默认模型。
 

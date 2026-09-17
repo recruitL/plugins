@@ -1,10 +1,12 @@
-# 上游复用候选（App 闭环通过，已卸载停用）
+# 上游复用（App 闭环通过，按项目用于日常委派）
 
-本候选直接加载 [arikon/agents-cursor-subagent-plugin](https://github.com/arikon/agents-cursor-subagent-plugin) 固定版本 ce257353ecae9061fe45d084cb80e2d0c46207cd。上游负责 ACP、会话、问答、计划、等待、结果、取消与恢复；这里不重写这些能力。上游没有许可证，因此代码留在用户单独检出目录，不复制到此仓库。
+本插件直接加载 [arikon/agents-cursor-subagent-plugin](https://github.com/arikon/agents-cursor-subagent-plugin) 固定版本 ce257353ecae9061fe45d084cb80e2d0c46207cd。上游负责 ACP、会话、问答、计划、等待、结果、取消与恢复；这里不重写这些能力。上游没有许可证，因此代码留在用户单独检出目录，不复制到此仓库。
 
 运行时只增加两个小文件：upstream-entry.mjs 校验并加载上游，upstream-policy.mjs 更新工具说明并区分实际待决操作：普通范围内命令需 Codex 提供审阅理由，未知操作和安全升级不能放行。普通问题和计划仍使用原工具，由 Codex 决策，不要求用户审批项目流程。上游原 Skill 的普通问题/计划人工审批规则不安装。
 
-## 当前证据
+用户后续要求日常使用：Codex 派工和验证，Cursor 修改代码与返修。已按单个授权项目恢复安装，保留既有目录与权限限制；不再自动卸载或追加验证活动。下文的卸载记录属于此前单次测试收尾。
+
+## 已有验证证据
 
 - 上游会话生命周期离线测试：54/54 通过。
 - 已安装 2026.05.28 CLI 缺少 --auto-review，不能按当前上游参数启动。

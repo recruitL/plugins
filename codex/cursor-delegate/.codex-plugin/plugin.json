@@ -1,7 +1,7 @@
 {
   "name": "cursor-delegate",
   "version": "0.1.0",
-  "description": "Codex coordinates one native Cursor ACP session through a pinned upstream runtime; experimental safety boundary.",
+  "description": "Codex delegates code changes to Cursor, then reviews and verifies the results.",
   "author": {
     "name": "recruitL"
   },
@@ -11,7 +11,7 @@
   "interface": {
     "displayName": "Cursor Delegate",
     "shortDescription": "Codex 总控，Cursor 实现与返修",
-    "longDescription": "原生上游 ACP 接入候选。Codex 处理普通问题和计划并验收返修；App 代码闭环已验证，完整隔离与可信人工安全升级仍未验证。",
+    "longDescription": "Codex 负责派工、技术判断、检查和验证；Cursor 在配置的项目目录中负责代码实现、维护及同会话返修。",
     "developerName": "recruitL",
     "category": "Productivity",
     "capabilities": [
