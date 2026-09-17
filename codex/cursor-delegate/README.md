@@ -38,13 +38,13 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 日常派工与故障
 
-普通文件维护通过插件附带的 Cursor `preToolUse` hook 暂停到现有 MCP 待审阅队列，Codex 查看路径及修改前后内容后逐次答复；同样支持原生 ACP `read/edit` 权限消息。hook 使用每个桥接进程自己的本地 socket。当前 Cursor 2026.09.15 ACP 从 `CURSOR_DATA_DIR/projects/<项目键>/.cursor/hooks.json` 加载 hooks；桥接仅合并这一项目的审阅项，保留已有 hooks 和备份，会话或服务关闭时恢复，不改用户全局 hooks。`--plugin-dir` 在该 ACP 版本不加载 hooks，因此不再用它承载审阅。断连/超时拒绝，不覆盖后续原生权限拒绝。大于 60 KB 的文件尚不支持内联审阅；人工安全升级仍是未完成功能。
+普通文件维护通过插件附带的 Cursor `preToolUse` hook 暂停到现有 MCP 待审阅队列，Codex 查看路径及修改前后内容后逐次答复；同样支持原生 ACP `read/edit` 权限消息。hook 使用每个桥接进程自己的本地 socket。当前 Cursor 2026.09.15 ACP 从 `CURSOR_DATA_DIR/projects/<项目键>/.cursor/hooks.json` 加载 hooks；桥接仅合并这一项目的审阅项，保留已有 hooks 和备份，会话或服务关闭时恢复，不改用户全局 hooks。`--plugin-dir` 在该 ACP 版本不加载 hooks，因此不再用它承载审阅。断连或审阅超时会阻止该次操作并返回具体原因，不覆盖后续原生权限拒绝。大文件读取使用显式 offset/limit，审阅只含该行段；局部写入显示完整改动跨度及前后各三行上下文，不重复传送整份源文件。当前单次审阅 JSON 限 16 KB，完整写入的本地文本物化限 256 KiB（兼容现有上游 1 MiB ACP 帧），hook/socket 传输另限 2 MiB。读取不受 256 KiB 文件总大小限制，但定位扫描预算为 32 MiB、单行和所选片段需符合审阅预算。超限返回 capacity_limit/range_required，须缩小行段或拆分局部编辑，不能当作安全拒绝。Cursor 的 StrReplace 内部会整文件读取：桥接按匹配的 ACP 编辑卡片、既有已审阅片段及未变化的文件状态识别此步骤，明确显示 read_scope=whole_file / purpose=edit_preparation，单独等待 Codex 审阅；这不是写入授权，后续 Write 仍须审阅完整局部差异。实际编辑前后保留状态核对；前置读取后文件改变会使写入失效。人工安全升级仍是独立未完成功能。
 
 派工运行时会带上实际会话目录；执行测试使用项目内文件的绝对路径，避免把插件子目录误当仓库根目录。权限答复中的 `configuration_mismatch` 表示路径/配置不匹配，`bridge_unsupported` 表示桥接尚不支持该操作形式，`request_mismatch` 表示待决请求已变化；核对同一会话与实际文件后再安排正确操作。`authorization_required` 表示已识别的越界路径，保持阻塞。原生拒绝原样返回，不自动重试。没有命令会因错误分类而自动获准。
 
 在已有授权覆盖且验证可用的环境中，可以说：“让 Cursor 完成这个修复，你审阅方案、检查真实改动并安排返修。”Codex 使用 `cursor_start_session → cursor_send_prompt → cursor_wait/cursor_session_status → cursor_read_result`；普通问答与计划由 Codex 回答，不作为用户审批关卡。完整读取结果后检查实际 cwd、文件和测试，再在同一会话返修。Cursor 工作期间不要同时修改相同文件。
 
-观察超时只检查同一任务，不重发 prompt。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。普通任务结束后保留插件安装，供下次派工。
+MCP 观察超时只检查同一任务，不重发 prompt。审阅队列有 90 秒期限，hook 传输看门狗为 110 秒，原生 hook 为 120 秒；未回答时返回 review_timeout，记录该请求未执行并废止它，不标记为人类或原生拒绝。状态中的 review_outcomes 区分连接失败、明确否决、取消和容量问题，并重新检查原文件状态。确认回合已结束且副作用可判断后，Codex 可在同一会话提出一次新的读取/修改请求；每次仍需重新审阅，旧答复不能放行。批准已发出但执行未确认时不声称“未执行”，不自动重复写入。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。普通任务结束后保留插件安装，供下次派工。
 
 若看到旧 `cursor_status/cursor_prompt`，说明 App 仍加载旧缓存，不能据此重复登录。若候选启动失败，检查上游版本与改动状态、绝对路径和 CLI 参数支持。模型列表可能要求独立 API key，不能为列出模型擅自获取付费凭据；已验证流程使用上游默认模型。
 

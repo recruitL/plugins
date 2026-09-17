@@ -45,7 +45,7 @@ test('actual hook transport pauses until MCP answer and denial/cancel never retu
  await runtime.call('cursor_answer_permission',{session_id:'s',turn_id:'t',request_id:req.entry.request_id,decision:'allow-once',reason:'Read project code'});
  assert.equal((await req.exited)[0],0);assert.equal(req.result().permission,'allow');
  req=await request('Write',{path:join(cwd,'module.py'),contents:'after\n'});
- assert.equal(req.entry.context.operation.files[0].newText,'after\n');assert.equal(readFileSync(join(cwd,'module.py'),'utf8'),'before\n');
+ assert.equal(req.entry.context.operation.files[0].change.new_text,'after\n');assert.equal(readFileSync(join(cwd,'module.py'),'utf8'),'before\n');
  await runtime.call('cursor_answer_permission',{session_id:'s',turn_id:'t',request_id:req.entry.request_id,decision:'reject-once'});
  assert.equal((await req.exited)[0],2);assert.equal(req.result().permission,'deny');
  req=await request('Write',{path:join(cwd,'module.py'),contents:'after\n'});
