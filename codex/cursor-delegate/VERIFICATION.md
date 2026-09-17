@@ -195,3 +195,14 @@ provider reason: Not in allowlist: head -50
 另行核验本机 Cursor 原生 AGENT_CLI_CREDENTIAL_STORE=memory 分支，并使用既有严格外层沙箱、NO_OPEN_BROWSER=1，实际调用 initialize → authenticate(cursor_login) → session/new。初始化成功；authenticate 返回 -32602，error.data 明确要求浏览器交接（不是方法不支持）；session/new 仍返回认证必需。没有开放浏览器、联网、读取现有钥匙串、复制 token、写认证文件或发送模型任务。测试退出 1，回执 [memory-auth-20260917.json](tests/receipts/memory-auth-20260917.json)。可用 `test:cursor-bootstrap` 的末尾参数 `memory-auth` 复现此接口检查；原始登录 URL/PKCE 值不会写入回执。
 
 该内存存储选项来自已安装版本实际源码，不能视作跨版本稳定公开 API。ACP 的 NO_OPEN_BROWSER 路径在返回错误后不会继续轮询登录，因此单独让用户点错误中的 URL 不能完成此会话认证。可信的浏览器交接、实际登录、凭据不进入执行命令环境、服务联网及完整代码闭环仍待实现/验证；没有以人工点击普通表单代替它们。
+
+
+## 2026-09-17 受限进程中的登录链接交接
+
+新增 `scripts/login-handoff.mjs`，仅传递 Cursor 原生生成的公开 PKCE 登录链接，不接收 access token、refresh token 或 verifier，不打开浏览器，不批准命令。它在启动前创建受外层沙箱只读保护的 `open` 小适配器，替代本轮测试进程 PATH 中的系统浏览器启动命令；适配器只接受 `https://cursor.com/loginDeepControl` 及本机已核验的四个参数，拒绝任意文件、应用、其他网址和附加参数。经专用目录一次性交接后删除中间文件；超时/取消结束监听。调用方必须在任何模型任务开始前完成认证，并在取消或失败时停止 Cursor。它是插件自身的链接传递机制，不是 App 原生批准机制，也不会证明用户已批准任何代码权限。
+
+25 项确定性测试通过（此前 19 项加 6 项）：官方目的地/PKCE 参数限制、一次交接、任意 open 参数拒绝、超时/取消、spool 与保护目录符号链接拒绝。审阅时修正了先递归 mkdir 后检查符号链接的顺序：现在逐层验证既有目录，再创建子目录，避免在越界目标内产生文件。
+
+真实 Cursor 以原生内存凭据模式启动在严格外层沙箱内，initialize 成功，authenticate(cursor_login) 生成链接，插件收到并通过目的地/参数校验后立即终止该进程。没有打开浏览器、完成登录、使用凭据、启用网络或发送模型任务。回执 [login-handoff-20260917.json](tests/receipts/login-handoff-20260917.json) 只存布尔结果；不包含一次性 URL、PKCE challenge/verifier 或 token。独立复现为 `test:cursor-bootstrap` 末尾参数 `handoff`。该模式退出 0 仅表示链接交接通过，bootstrap_passed 仍为 false。
+
+此组件尚未接入默认 Bridge 或已安装 App 服务。真实登录后的配置更新、官方服务联网、会话创建、普通命令授权判断和完整代码返修仍未验证；无需用户点击已经被取消的测试链接。外层 OS 沙箱与原有拒绝策略未被放宽。

@@ -1,14 +1,15 @@
 // Opt-in actual ACP bootstrap under explicit OS isolation. No prompt or login.
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { spawn } from 'node:child_process';
 import { isolatedCursorLaunch } from '../scripts/isolated-launch.mjs';
+import { createLoginHandoff } from '../scripts/login-handoff.mjs';
 
 const [parent, codexPath, agentPath, probeMode] = process.argv.slice(2);
 assert(parent && codexPath && agentPath,
   'Usage: node tests/cursor-bootstrap-native.mjs SHORT_TEST_PARENT CODEX_BINARY CURSOR_AGENT');
-assert(probeMode === undefined || probeMode === 'memory-auth', 'Unknown bootstrap probe mode');
+assert(probeMode === undefined || ['memory-auth', 'handoff'].includes(probeMode), 'Unknown bootstrap probe mode');
 const base = mkdtempSync(join(realpathSync(parent), 'cb-'));
 const workspace = join(base, 'workspace'); mkdirSync(workspace);
 for (const name of ['.cursor', 'data', 'cache', 'tmp', 'codex']) mkdirSync(join(workspace, name));
@@ -19,6 +20,13 @@ const launch = isolatedCursorLaunch({ codexPath, workspace, agentPath });
 if (probeMode === 'memory-auth') {
   launch.env.AGENT_CLI_CREDENTIAL_STORE = 'memory';
   launch.env.NO_OPEN_BROWSER = '1';
+}
+let handoff;
+if (probeMode === 'handoff') {
+  const node = launch.args[launch.args.indexOf('--') + 1];
+  handoff = createLoginHandoff({ workspace, nodePath: node });
+  Object.assign(launch.env, handoff.env, { AGENT_CLI_CREDENTIAL_STORE: 'memory',
+    PATH: `${handoff.bin}:${dirname(node)}:/usr/bin:/bin` });
 }
 const receipt = { kind: 'real Cursor bootstrap in explicit OS sandbox; NOT App integration',
   workspace, network: 'restricted', credential_access_expanded: false,
@@ -84,13 +92,22 @@ try {
       unknown_method: /Unknown authentication method/.test(JSON.stringify(auth.error ?? {})),
       browser_handoff_required: /Failed to open browser for login/.test(JSON.stringify(auth.error ?? {})) };
   }
-  if (!init.error) receipt.session_new = summary(await rpc('session/new', { cwd: workspace, mcpServers: [] }));
+  if (!init.error && handoff) {
+    const authentication = rpc('authenticate', { methodId: 'cursor_login' });
+    authentication.catch(() => {});
+    // Receipt contains booleans only: do not print or save the one-time URL.
+    await handoff.url;
+    receipt.login_handoff = { validated_url_received: true, browser_opened: false,
+      login_completed: false, stopped_before_login: true };
+    stop(); await authentication.catch(() => {});
+  }
+  if (!init.error && !handoff) receipt.session_new = summary(await rpc('session/new', { cwd: workspace, mcpServers: [] }));
 } catch (error) { receipt.failure = error.message; }
 finally {
-  stop(); await exited; receipt.stderr_bytes = stderrBytes;
+  handoff?.cancel(); stop(); await exited; receipt.stderr_bytes = stderrBytes;
   receipt.bootstrap_passed = receipt.initialize?.ok === true && receipt.session_new?.ok === true
     && !receipt.unexpected_client_request && !receipt.failure;
   writeFileSync(join(base, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n');
   console.log(JSON.stringify(receipt, null, 2));
-  process.exitCode = receipt.bootstrap_passed ? 0 : 1;
+  process.exitCode = (handoff ? receipt.login_handoff?.validated_url_received === true && !receipt.failure : receipt.bootstrap_passed) ? 0 : 1;
 }
