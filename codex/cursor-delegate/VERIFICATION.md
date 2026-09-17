@@ -251,3 +251,6 @@ provider reason: Not in allowlist: head -50
 真实原生代理在两个独立回环测试目录各通过 6 项检查：limited 的 POST 被拒绝；full 的 POST 到达无敏感哨兵；两者均继续拒绝未允许地址、明确禁止地址和直接 socket。回执 network-methods-20260917.json。未在 full 模式向外部服务发送请求，没有真实凭据或模型调用，不能当作 App 登录成功。确定性测试 40/40 通过。
 
 策略解释与官方网络代理文档一致：https://github.com/openai/codex/blob/main/codex-rs/network-proxy/README.md 。当前配置仅有 limited/full 两种模式；没有新增自制代理或全局关闭沙箱。
+
+
+用户随后明确同意本插件 api2.cursor.sh 全部 HTTP 方法。现已仅增加用户级 CURSOR_DELEGATE_API_HTTP_MODE=full 并安装 0.1.0+codex.20260917085751；修改前备份 before-api-methods-20260917T085751Z。核对删除新增环境项后 .mcp.json 与原配置相同，安装缓存代码一致。相同隔离运行器的无凭据初始化 POST 返回官方 JSON 401，不再是代理 method-policy 403，证明此前方法拦截已解除；没有模型调用。已安装配置的 App 重载、真实登录与代码闭环仍待验证，不能把 401 记成认证成功。

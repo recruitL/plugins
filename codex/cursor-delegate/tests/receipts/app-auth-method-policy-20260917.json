@@ -17,5 +17,15 @@
     "body": "Method not allowed in limited mode."
   },
   "conclusion": "Confirmed proxy method-policy blocker on required initialization endpoint; removing it is not yet proof that real authentication succeeds",
-  "api_full_mode_enabled": false
+  "api_full_mode_enabled": true,
+  "authorization": "User explicitly agreed in this task",
+  "post_authorization_probe": {
+    "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/hp-s3lPYO",
+    "real_credentials_used": false,
+    "model_prompt_sent": false,
+    "http_status": 401,
+    "proxy_method_denial": false
+  },
+  "installed_version": "0.1.0+codex.20260917085751",
+  "app_reload_and_authenticated_execution": "not yet verified"
 }
