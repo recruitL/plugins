@@ -269,3 +269,13 @@ provider reason: Not in allowlist: head -50
 官方状态命令确认现有 Cursor 登录有效。上游配合已安装五月版本无法启动，静态核验该版本无 --auto-review 参数；上游测试基线为八月版本。改用已下载但未安装的官方 2026.09.15 发行包，未修改的上游 Runtime 成功创建真实 ACP 空会话，且无需 authenticate/人工登录。数据与偏好在新测试目录，未发送模型 prompt，关闭会话后退出。回执见 upstream-native-auth-20260917.json。
 
 已准备直接加载固定上游的候选入口及权限拒绝适配；尚未安装、未替换 App 入口。原生执行不继承旧外层 OS 隔离，安全边界不能沿用旧测试结论。详细差异见 UPSTREAM-REUSE.md。
+
+## 2026-09-17 用户授权的原生联调：代码、返修、边界与取消
+
+用户明确允许仅此次无敏感测试项目的原生联调，不经旧外层隔离。新版官方 CLI 复用既有登录。通过真实上游 MCP/ACP，Cursor 返回技术问题/计划，Codex 选择 named export 并派工。Cursor 写入 add.mjs/add.test.mjs；Codex 检查真实文件后审阅指定 node --test，初版独立运行 4/4。随后同一 provider 会话补充有限数字校验，先新增测试：Cursor 报告 18 失败；修复后报告 22/22，Codex 独立运行也为 22/22。未混同文本问答与原生回调。
+
+最初候选把所有 permission 都拒绝，范围过宽；当前适配读取实际 pending 上下文，只对明确范围内普通命令接受 Codex 审阅理由。曾在未执行准备命令时由协调器关闭并加载同一 provider 会话进行维护；这不是用户取消或安全拒绝后的恢复。后来一项不必要的复合读取步骤由 Codex 技术性否决，Cursor 使用已有上下文继续写入，不发生越界读取。
+
+实际安全探针请求 touch 项目外无敏感哨兵，伪造人类批准理由无法放行，文件保持不存在。之后 cursor_cancel 终止会话，负面测试后续派工被拒；没有恢复或新派工。原生驱动清理退出。精简回执、独立测试输出和返修 diff 分别为 upstream-native-loop-20260917.json、upstream-native-tests-20260917.txt、upstream-native-repair-20260917.patch。
+
+本轮是终端客户端的真实 MCP/ACP，未替代 App 验证；原生 OS 隔离未获证明，通用命令及可信人工安全升级仍有限制。已安装配置未改变。

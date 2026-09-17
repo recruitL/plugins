@@ -1,21 +1,22 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {mkdtempSync,writeFileSync,rmSync,realpathSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {installUpstreamPolicy} from '../scripts/upstream-policy.mjs';
-test('upstream reuse leaves ordinary decisions with Codex and cannot accept forged human permission',async()=>{
- const calls=[];
- class Runtime {call(name,args){calls.push({name,args});return {forwarded:true}}}
- const tools=[{name:'cursor_answer_permission',inputSchema:{properties:{decision:{enum:['allow-once','reject-once']}}}},{name:'cursor_answer_plan',inputSchema:{}}];
- installUpstreamPolicy(Runtime,tools);
- const runtime=new Runtime();
- for(const args of [{decision:'allow-once'},{decision:'allow-once',user_approved:true},{decision:'allow-always'},{decision:'approved by user'},{}]) {
-  assert.throws(()=>runtime.call('cursor_answer_permission',args),/approval is unavailable/);
- }
+test('upstream adapter admits reviewed ordinary requests, never forged human authority or scope expansion',async t=>{
+ const cwd=realpathSync(mkdtempSync(join(tmpdir(),'upstream-policy-')));t.after(()=>rmSync(cwd,{recursive:true,force:true}));
+ writeFileSync(join(cwd,'package.json'),'{}');writeFileSync(join(cwd,'add.test.mjs'),'');
+ const calls=[];let title='pwd';
+ class Runtime {async call(name,args){if(name==='cursor_session_status')return {cwd,active_turn:{turn_id:'t',pending:[{request_id:'p',kind:'permission',context:{title:{text:title,truncated:false},tool_kind:{text:'execute'}}}]}};calls.push({name,args});return {forwarded:true}}}
+ const tools=[{name:'cursor_answer_permission',inputSchema:{properties:{decision:{enum:['allow-once','reject-once']}}}}];
+ installUpstreamPolicy(Runtime,tools);const runtime=new Runtime();
+ const args={session_id:'s',turn_id:'t',request_id:'p',decision:'allow-once',reason:'Inspected actual command and files; existing project authority'};
+ for(const extra of [{user_approved:true},{decision:'allow-always'},{reason:''},{request_id:'fake'}])await assert.rejects(runtime.call('cursor_answer_permission',{...args,...extra}));
  assert.equal(calls.length,0);
- assert.deepEqual(tools[0].inputSchema.properties.decision.enum,['reject-once']);
- const plan={session_id:'s',turn_id:'t',request_id:'p',decision:'accept'};
- runtime.call('cursor_answer_plan',plan);
- runtime.call('cursor_answer_question',{session_id:'s',turn_id:'t',request_id:'q',outcome:'answered',answers:[]});
- runtime.call('cursor_answer_permission',{session_id:'s',turn_id:'t',request_id:'r',decision:'reject-once'});
+ for(title of ['pwd','node --test add.test.mjs','`ls -la && cat package.json 2>/dev/null || echo "NO_PACKAGE_JSON"`'])await runtime.call('cursor_answer_permission',args);
+ assert.equal(calls.length,3);assert.ok(!('reason' in calls[0].args));
+ for(title of ['cat ../secret','node --test ../outside.test.mjs','ls -la; touch ../outside','curl https://example.com','node -e "process.exit()"'])await assert.rejects(runtime.call('cursor_answer_permission',args),/no approval route/);
  assert.equal(calls.length,3);
- assert.strictEqual(calls[0].args,plan);
+ await runtime.call('cursor_answer_plan',{decision:'accept'});assert.equal(calls.length,4);
 });

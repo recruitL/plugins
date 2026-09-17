@@ -1,6 +1,6 @@
-// This recognizes only ordinary operations already contained by an explicit OS
-// profile. It never authorizes an expanded filesystem/network scope or approval
-// setting. Codex must still review each proposed operation and its input files.
+// Syntax/scope recognition only: NOT OS confinement or an authorization grant.
+// The caller must apply its execution boundary and existing project authority.
+// Codex must review the proposed operation and actual input files.
 import {realpathSync,statSync} from 'node:fs';
 import {resolve,relative,isAbsolute} from 'node:path';
 export function confinedCommand(title,cwd,nodePath) {
