@@ -37,12 +37,19 @@ export class Bridge extends EventEmitter {
     command = "agent",
     spawnProcess = spawn,
     deadline = 900000,
+    authorizationStatus = () => ({
+      available: false,
+      reason: "host_not_connected",
+      permission_request_action: "deny_before_execution",
+    }),
   } = {}) {
     super();
     this.root = root;
     this.command = command;
     this.spawnProcess = spawnProcess;
     this.deadline = deadline;
+    // Diagnostic source owned by the MCP server, never a tool-supplied grant.
+    this.authorizationStatus = authorizationStatus;
     this.session = null;
     this.safetyLatch = false;
     this.rpcId = 0;
@@ -208,6 +215,7 @@ export class Bridge extends EventEmitter {
         origin: "bridge",
         trigger: "cursor_permission_request",
         reason: "no_trusted_approval_channel",
+        authorization: this.authorizationStatus(),
         cwd: s.cwd,
         task_scope: s.scope ?? null,
         proposed_action:

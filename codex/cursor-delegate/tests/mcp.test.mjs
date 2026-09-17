@@ -122,6 +122,9 @@ test("real MCP stdio round-trips a diagnostic form without starting Cursor", asy
   assert.equal(status.state, "idle");
   assert.equal(status.configured, false);
   assert.equal(status.host_interaction.last_result.action, "decline");
+  assert.equal(status.host_interaction.human_authorization.available, false);
+  assert.equal(status.host_interaction.human_authorization.user_verification_advertised, false);
+  assert.equal(status.host_interaction.human_authorization.reason, "user_verification_not_advertised_by_host");
   child.stdin.end();
   await new Promise((resolve) => child.once("exit", resolve));
 });

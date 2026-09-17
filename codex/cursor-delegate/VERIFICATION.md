@@ -16,7 +16,7 @@
 | 安装缓存实际运行 | 从 personal 安装缓存启动 MCP，调用 cursor_status | 返回 configured=true 和测试项目路径；仍非 App 调用 |
 | App 内发现/调用 | 新 App 任务实际调用 cursor_status/start/prompt/wait/result；回读任务记录与权限回执 | 发现、启动、派工调用已验证；后续因权限请求被桥接取消，端到端未通过 |
 
-`npm test` 当前 17 项全部通过。新增真实权限请求形状回归与文本问题同会话答复测试；仍是确定性测试。开发中曾出现恢复等待进程退出事件的测试失败，已修复“事件已发生后才订阅”的顺序问题，随后完整重跑 9/9 通过。测试分类如上，不能把全部称为单元测试，更不能等同真实联调。
+`npm test` 当前 19 项全部通过。新增真实权限请求形状回归与文本问题同会话答复测试；仍是确定性测试。开发中曾出现恢复等待进程退出事件的测试失败，已修复“事件已发生后才订阅”的顺序问题，随后完整重跑 9/9 通过。测试分类如上，不能把全部称为单元测试，更不能等同真实联调。
 
 ## A–E 对照
 
@@ -121,3 +121,19 @@ provider reason: Not in allowlist: head -50
 - 驱动退出 0，等待子进程退出后保存精简回执 [native-boundary-20260917.json](tests/receipts/native-boundary-20260917.json)。原始 App 代码会话在测试开始时仍是 blocked/pid=null，未被恢复或修改。
 
 这是原生 Cursor 的权限请求拒绝测试，不是模拟提供者，也不是 App 工具调用。它验证模型声称“用户已批准”不会使现有 deny 策略放行；没有验证可信的人类批准路径、真正越界系统调用的 OS 隔离，或代码实现→执行测试→返修的完整闭环。当前宿主允许自动审批审查，进一步说明不能仅凭通用表单 accept 判断有人类点击。没有将该机制接成权限放行开关。
+
+
+## 2026-09-17 人工授权接口核验与运行时能力诊断
+
+本轮核验了官方源码 commit `39a99a6c36d0b8c44a716eae28d5133da28f55e6`：
+
+- [人类验证协议](https://github.com/openai/codex/blob/39a99a6c36d0b8c44a716eae28d5133da28f55e6/codex-rs/rmcp-client/src/user_verification.rs)要求专门请求及凭据/签名结构；普通 form 的 accept 不是该协议。
+- [配置型 MCP 限制测试](https://github.com/openai/codex/blob/39a99a6c36d0b8c44a716eae28d5133da28f55e6/codex-rs/core/tests/suite/mcp_user_verification.rs)明确验证：配置型服务器不获得 userVerification 能力，即使会话显式启用仍被拒绝。
+
+随后使用本机 App 捆绑的 Codex 0.153.4 app-server 做隔离协议测试。HOME/CODEX_HOME 在新建临时目录，未复制凭据；只创建临时协议上下文并查询 MCP 状态，没有 turn/start、模型推理、Cursor 启动或弹窗请求。实际捕获的 MCP initialize 支持普通表单，但 `capabilities.extensions["openai/elicitation"].userVerification` 未声明。精简回执：[host-authorization-20260917.json](tests/receipts/host-authorization-20260917.json)。这是实际本机构建的协议证据，不是当前 App UI 的新版字段验证。
+
+运行时更新：HostInteractionProbe 只从初始化握手识别该能力，在 status 中提供 human_authorization；真实 Cursor 权限拒绝的 blocking 附上相同的宿主诊断。能力缺失时明确返回 user_verification_not_advertised_by_host。即使广告中有该能力，未建立可信凭据验证时仍返回 trusted_credential_verification_unavailable，不允许执行。通用 form accept、user_approved、伪造 credentialId/signature 均不能改变该状态。
+
+19 项确定性测试通过，包括新增加的能力类型/命名空间校验和伪造表单证明测试；MCP 子进程测试检查新状态字段。首次回归因既有断言尚未包含新增诊断字段而失败，更新预期后完整通过。
+
+没有新增权限批准工具、等待却无法批准的会话状态、隐藏能力开关或自动放行。原先计划中的可信批准→单次执行无法在当前已核验接口上安全接通，因此等待/放行分支没有伪装成已完成。新增字段的 App 加载须在安装后实际 cursor_status 返回中另行核验；此前真实 Cursor 测试不能替代这一项。

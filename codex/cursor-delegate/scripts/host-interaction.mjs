@@ -8,6 +8,7 @@ export class HostInteractionProbe {
     this.timeoutMs = timeoutMs;
     this.protocol = "2024-11-05";
     this.supported = false;
+    this.userVerificationAdvertised = false;
     this.pending = null;
     this.last = null;
   }
@@ -26,12 +27,30 @@ export class HostInteractionProbe {
       v !== null && typeof v === "object" && !Array.isArray(v);
     this.supported =
       object(e) && (object(e.form) || Object.keys(e).length === 0);
+    // Read only the host's initialize handshake. Ordinary form support is not
+    // user verification; neither tool arguments nor returned form content can
+    // set this value. Advertisement alone still supplies no trusted credential.
+    this.userVerificationAdvertised = object(
+      params.capabilities?.extensions?.["openai/elicitation"]?.userVerification,
+    );
     return this.protocol;
+  }
+  authorizationStatus() {
+    return {
+      available: false,
+      user_verification_advertised: this.userVerificationAdvertised,
+      reason: this.userVerificationAdvertised
+        ? "trusted_credential_verification_unavailable"
+        : "user_verification_not_advertised_by_host",
+      ordinary_form_can_authorize: false,
+      permission_request_action: "deny_before_execution",
+    };
   }
   status() {
     return {
       protocol_version: this.protocol,
       form_capability_advertised: this.supported,
+      human_authorization: this.authorizationStatus(),
       pending: Boolean(this.pending),
       last_result: this.last,
       grants_permissions: false,

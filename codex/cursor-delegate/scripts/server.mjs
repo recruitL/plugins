@@ -28,7 +28,7 @@ export const tools = [
   ),
   tool(
     "cursor_status",
-    "Read actual workspace, execution state and safety policy. No execution.",
+    "Read actual workspace, execution state, safety policy and host human-authorization capability. Ordinary forms and capability advertisement cannot grant Cursor permissions. No execution.",
     {},
   ),
   tool(
@@ -140,16 +140,17 @@ export async function dispatch(bridge, name, args, host) {
   return await bridge[name.slice(7)](args);
 }
 export function serve() {
-  const bridge = new Bridge({
-    root: process.env.CURSOR_DELEGATE_ROOT,
-    command: process.env.CURSOR_AGENT_COMMAND || "agent",
-  });
   let buffer = "",
     initialized = false,
     inflight = 0;
   const send = (msg) =>
     process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...msg }) + "\n");
   const host = new HostInteractionProbe(send);
+  const bridge = new Bridge({
+    root: process.env.CURSOR_DELEGATE_ROOT,
+    command: process.env.CURSOR_AGENT_COMMAND || "agent",
+    authorizationStatus: () => host.authorizationStatus(),
+  });
   async function handle(m) {
     if (!m || typeof m !== "object" || m.jsonrpc !== "2.0") {
       send({ id: null, error: { code: -32600, message: "Invalid request" } });
@@ -167,7 +168,7 @@ export function serve() {
           capabilities: { tools: {} },
           serverInfo: { name: "cursor-delegate", version: "0.1.0" },
           instructions:
-            "Codex coordinates ordinary plans/questions. Native Cursor permissions fail closed; no approval tool. Status before any recovery. Do not infer completion from protocol success.",
+            "Codex coordinates ordinary plans/questions. Native Cursor permissions fail closed; no approval tool. Inspect host_interaction.human_authorization in cursor_status: ordinary forms are not human authorization, and unverified capability advertisements do not enable execution. Status before any recovery. Do not infer completion from protocol success.",
         };
       } else if (!initialized) throw Error("Initialize first");
       else if (m.method === "ping") result = {};

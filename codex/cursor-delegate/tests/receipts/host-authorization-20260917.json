@@ -1,0 +1,18 @@
+{
+  "kind": "bundled Codex app-server isolated protocol test; NOT App UI",
+  "host": {
+    "protocol_version": "2025-06-18",
+    "form_capability_advertised": true,
+    "human_authorization": {
+      "available": false,
+      "user_verification_advertised": false,
+      "reason": "user_verification_not_advertised_by_host",
+      "ordinary_form_can_authorize": false,
+      "permission_request_action": "deny_before_execution"
+    },
+    "pending": false,
+    "last_result": null,
+    "grants_permissions": false,
+    "human_identity_verified": false
+  }
+}

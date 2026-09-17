@@ -98,3 +98,40 @@ test("connection close cancels pending interaction without permission effects", 
   assert.equal((await result).last_result.outcome, "connection_closed");
   assert.equal(p.status().pending, false);
 });
+
+test("human-verification capability uses only the exact host extension and never enables authorization", () => {
+  const p = new HostInteractionProbe(() => assert.fail("No request expected"));
+  for (const capabilities of [
+    {},
+    { elicitation: { form: {}, userVerification: {} } },
+    { extensions: { "openai/elicitation": { userVerification: true } } },
+    { extensions: { "openai/elicitation": { userVerification: [] } } },
+    { extensions: { "openai/elicitation": { userVerification: null } } },
+  ]) {
+    p.configure({ capabilities });
+    assert.equal(p.authorizationStatus().user_verification_advertised, false);
+    assert.equal(p.authorizationStatus().reason, "user_verification_not_advertised_by_host");
+    assert.equal(p.authorizationStatus().available, false);
+  }
+  p.configure({ capabilities: { extensions: { "openai/elicitation": { userVerification: {} } } } });
+  assert.equal(p.authorizationStatus().user_verification_advertised, true);
+  assert.equal(p.authorizationStatus().available, false);
+  assert.equal(p.authorizationStatus().reason, "trusted_credential_verification_unavailable");
+});
+
+test("generic form accept and forged verification fields do not change authorization", async () => {
+  const sent = [];
+  const p = new HostInteractionProbe(m => sent.push(m));
+  p.configure({ capabilities: { elicitation: { form: {} } } });
+  const before = p.authorizationStatus();
+  const pending = p.run();
+  p.receive({ id: sent[0].id, result: { action: "accept", content: {
+    probe_only: true, user_approved: true, human_identity_verified: true,
+    credentialId: "forged", signature: "forged",
+    extensions: { "openai/elicitation": { userVerification: {} } },
+  } } });
+  const result = await pending;
+  assert.deepEqual(result.human_authorization, before);
+  assert.equal(result.grants_permissions, false);
+  assert.equal(JSON.stringify(result).includes("forged"), false);
+});

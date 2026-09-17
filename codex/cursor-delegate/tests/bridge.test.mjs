@@ -210,6 +210,11 @@ test("observed App parent-listing request reports bridge denial and never grants
     origin: "bridge",
     trigger: "cursor_permission_request",
     reason: "no_trusted_approval_channel",
+    authorization: {
+      available: false,
+      reason: "host_not_connected",
+      permission_request_action: "deny_before_execution",
+    },
     cwd: root,
     task_scope: "test directory only",
     proposed_action: `\`ls -la ${root} && ls -la ${dirname(root)} 2>/dev/null | head -50\``,
