@@ -1,7 +1,7 @@
 import readline from "node:readline";
 import { writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
-let promptId, phase, promptText;
+let promptId, phase, promptText, authId;
 const send = (m) =>
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", ...m }) + "\n");
 const reply = (id, result) => send({ id, result });
@@ -25,7 +25,10 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
       protocolVersion: 1,
       agentCapabilities: { loadSession: true },
     });
-  else if (m.method === "authenticate") reply(m.id, {});
+  else if (m.method === "authenticate") {
+    if(process.env.FIXTURE_DEFER_AUTH) authId=m.id; else reply(m.id,{});
+  }
+  else if(m.method === "test/release_auth") reply(authId,{});
   else if (["session/new", "session/load"].includes(m.method))
     reply(m.id, { sessionId: "provider-1" });
   else if (m.method === "session/prompt") {

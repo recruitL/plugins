@@ -206,3 +206,26 @@ provider reason: Not in allowlist: head -50
 真实 Cursor 以原生内存凭据模式启动在严格外层沙箱内，initialize 成功，authenticate(cursor_login) 生成链接，插件收到并通过目的地/参数校验后立即终止该进程。没有打开浏览器、完成登录、使用凭据、启用网络或发送模型任务。回执 [login-handoff-20260917.json](tests/receipts/login-handoff-20260917.json) 只存布尔结果；不包含一次性 URL、PKCE challenge/verifier 或 token。独立复现为 `test:cursor-bootstrap` 末尾参数 `handoff`。该模式退出 0 仅表示链接交接通过，bootstrap_passed 仍为 false。
 
 此组件尚未接入默认 Bridge 或已安装 App 服务。真实登录后的配置更新、官方服务联网、会话创建、普通命令授权判断和完整代码返修仍未验证；无需用户点击已经被取消的测试链接。外层 OS 沙箱与原有拒绝策略未被放宽。
+
+
+## 2026-09-17 MCP 会话流程接入显式隔离与登录交接
+
+新增 IsolatedRuntime，由用户级服务配置选择；生产 MCP 在缺少显式隔离配置时拒绝启动，不再回退到未验证的 Cursor 原生参数。启动异步返回 starting，随后 authenticating/awaiting_login。官方 URL 只在登录等待中显示；实际认证与 session/new 成功后才能 ready。登录前派工被拒绝，取消/失败清理链接、交接监听器和进程组。隔离模式的内存凭据不跨进程持久化，因此自动恢复明确禁用，不能借旧生命周期测试声称已支持。
+
+外层权限配置及项目保护目录只读。源码检查确认原生 authenticate 在获得凭据后会更新 privacyCache；FileBasedConfigProvider.transform 无条件写临时配置并重命名。因此会话偏好改放隔离缓存，不写用户原配置；此可写文件不作为权限边界，外层 OS 文件/网络规则不随其改变。实际登录后此路径仍须联调验证。
+
+30 项确定性测试通过：新覆盖登录等待/ready、提前派工拒绝、取消清理、交接失败、准备阶段取消不启动进程，以及缺少隔离时生产拒绝。修复延迟启动错误可能影响后续会话的竞态。首次新增取消测试将无进程误写成 undefined，修正为 null 并增加实际启动次数为零的检查。
+
+独立驱动通过真实 MCP stdio 启动真实 Cursor 和外层沙箱；受限网络仅允许 api2.cursor.sh。实际到达 awaiting_login，等待原生登录轮询后状态仍保持；提前 cursor_prompt 被桥接拒绝，cursor_cancel 清空链接，系统 PID 检查确认退出，cursor_recover 被拒绝。未打开浏览器、完成登录或发送模型任务。回执 [mcp-isolated-login-20260917.json](tests/receipts/mcp-isolated-login-20260917.json)。这不是 App UI 测试。
+
+另用相同 IsolatedRuntime 生成的配置和 Cursor 自带 Node，对官方 API 根路径发送一次无凭据 HTTPS GET、不跟随跳转，HTTP 200、代理环境存在、TLS 证书校验开启。回执 [isolated-https-20260917.json](tests/receipts/isolated-https-20260917.json)。它验证基础 HTTPS 连通性，不证明模型流量、完整认证、其他域名或代码闭环成功。
+
+
+普通命令分流已进入运行时：只有显式 IsolatedRuntime、当前活动会话且原生请求带 allow_once 时，范围内 pwd/ls 或明确指定的 Node .test.js/.mjs/.cjs 文件才进入 confined_command 等待 Codex 审阅。拒绝 shell 组合/展开、附加 Node 执行参数、越界路径和符号链接。cursor_answer 必须带 decision 和 reason，执行前重查路径；只选择提供者本次 allow_once，不能选择 allow-always 或修改 OS 权限。Codex 仍需按实际代码与任务意图判断，名字本身不是安全证明。其他权限请求保持拒绝和锁定。
+
+34 项确定性测试通过，包括新加的命令分类、注入/越界拒绝和一次原生选项选择；真实 Cursor 执行此分支仍待账号登录后的闭环验收。使用即将安装的同一 IsolatedRuntime（启用官方 API 代理）再做十项真实 OS 哨兵检查，全部通过，直接本机连接数为零；见 [integrated-boundary-20260917.json](tests/receipts/integrated-boundary-20260917.json)。没有用这组 Node OS 探针冒充真实 Cursor 写代码测试。
+
+修改后的安装器已在独立临时 HOME 使用真实 Codex CLI 注册并安装成功，根目录、显式沙箱路径、cursor-api 网络配置均核对。首轮因测试 HOME 尚无 .codex 目录失败，补齐前提后同一隔离测试通过；未修改用户现有配置。插件/Skill 校验通过。
+
+
+已将新版源码复制到 personal 插件并通过 Codex CLI 重装，备份保留在本任务 backups/before-isolated-runtime-20260917T053916Z；专用配置改为新建无敏感 app-live 测试目录、显式 Codex 沙箱和单一官方 API 代理。没有覆盖其他插件或整份 Codex 配置。随后实际 App cursor_status 仍返回旧 test-project 根目录和旧 deny 策略，说明当前 App 的 MCP 实例尚未重载；没有在旧实例继续派工。新版 App 调用、真实账号登录、普通测试执行及返修尚未验证，需要宿主重载后继续。

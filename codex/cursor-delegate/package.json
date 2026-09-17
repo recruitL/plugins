@@ -11,7 +11,8 @@
     "start": "node scripts/server.mjs",
     "test:sandbox": "node tests/sandbox-native.mjs",
     "test:cursor-bootstrap": "node tests/cursor-bootstrap-native.mjs",
-    "test:network": "node tests/network-native.mjs"
+    "test:network": "node tests/network-native.mjs",
+    "test:mcp-native": "node tests/mcp-native-isolated.mjs"
   },
   "license": "MIT"
 }

@@ -1,4 +1,5 @@
 import { Bridge } from "./bridge.mjs";
+import { IsolatedRuntime } from "./isolated-runtime.mjs";
 import { pathToFileURL } from "node:url";
 import { HostInteractionProbe } from "./host-interaction.mjs";
 const str = { type: "string", minLength: 1, maxLength: 100000 };
@@ -33,7 +34,7 @@ export const tools = [
   ),
   tool(
     "cursor_start",
-    "Start one Cursor ACP session in configured root using native sandbox. No model override. Fails closed on permission requests.",
+    "Start one Cursor ACP session in configured root. In isolated mode returns starting; read status/wait for awaiting_login and show its validated official login_url to the user. Never prompt before ready. No model override; only bounded ordinary commands can be reviewed by Codex; security upgrades fail closed.",
     { cwd: str },
   ),
   tool(
@@ -53,7 +54,7 @@ export const tools = [
   ),
   tool(
     "cursor_answer",
-    "Codex answers ordinary questions/plans based on user scope. Not a human approval API: cannot authorize extra access. Inspect actual content before answering.",
+    "Codex reviews ordinary questions, plans and confined_command requests. For a command, inspect actual files and provide decision plus reason. Only bounded read/Node-test operations inside the explicit OS profile are supported; cannot grant extra access or claim human approval.",
     {
       ...sid,
       turn_id: str,
@@ -148,7 +149,12 @@ export function serve() {
   const host = new HostInteractionProbe(send);
   const bridge = new Bridge({
     root: process.env.CURSOR_DELEGATE_ROOT,
+    requireIsolation: true,
     command: process.env.CURSOR_AGENT_COMMAND || "agent",
+    isolatedRuntime: process.env.CURSOR_DELEGATE_CODEX_SANDBOX ? new IsolatedRuntime({
+      codexPath: process.env.CURSOR_DELEGATE_CODEX_SANDBOX,
+      networkEnabled: process.env.CURSOR_DELEGATE_NETWORK === "cursor-api",
+    }) : undefined,
     authorizationStatus: () => host.authorizationStatus(),
   });
   async function handle(m) {
@@ -168,7 +174,7 @@ export function serve() {
           capabilities: { tools: {} },
           serverInfo: { name: "cursor-delegate", version: "0.1.0" },
           instructions:
-            "Codex coordinates ordinary plans/questions. Native Cursor permissions fail closed; no approval tool. Inspect host_interaction.human_authorization in cursor_status: ordinary forms are not human authorization, and unverified capability advertisements do not enable execution. Status before any recovery. Do not infer completion from protocol success.",
+            "Codex coordinates ordinary plans/questions and reviews bounded confined_command requests. Other native permission requests fail closed; no human-approval or scope-expansion tool. Inspect host_interaction.human_authorization in cursor_status: ordinary forms are not human authorization, and unverified capability advertisements do not enable execution. Status before any recovery. Do not infer completion from protocol success.",
         };
       } else if (!initialized) throw Error("Initialize first");
       else if (m.method === "ping") result = {};

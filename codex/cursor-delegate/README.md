@@ -1,112 +1,52 @@
-# Cursor Delegate（本地测试版）
+# Cursor Delegate（接入验证版）
 
-Codex App → 本插件 MCP 服务 → Cursor 官方 ACP。Codex 负责派工、技术决策、检查实际改动和返修；Cursor 保持一个会话承担实现工作。没有任务数据库、独立界面、自动付费或云端总控。
+Codex App → MCP 服务 → Cursor 官方 ACP。Codex 审阅普通技术问题和计划，读取实际产物并安排同会话返修；Cursor 负责代码实现。没有独立总控界面、任务数据库或额外付费服务。
 
-**当前未达到完整验收标准。** 本机安装、真实 Cursor 认证和 App 内工具调用已验证；App 代码任务在准备阶段因权限请求被插件取消。安全升级目前只支持拒绝执行，尚未接通可信的人类批准通道。不能作为已验证的无人值守生产工具。详见 [验证记录](VERIFICATION.md)。
+**整体代码闭环尚未通过。** 旧 App 会话已完成问答和代码写入，但执行测试被权限策略阻止。新版已打通显式隔离启动、受限联网、登录链接交接、MCP 登录等待和取消；实际账号登录及新版 App 验证仍待完成。分层证据见 [VERIFICATION.md](VERIFICATION.md)。
 
-## 安装、启用
+## 安装与启用
 
-需要 macOS/Linux、Node.js 22+、Codex 插件 CLI，以及官方 Cursor Agent 的 `agent acp`。沿用已有 Cursor 登录；尚未登录时由本人执行 `agent login`，不要把密钥贴进对话。
-
-在此目录运行：
+当前隔离实现仅验证 macOS、Codex 0.153.4、Cursor Agent 2026.05.28-a70ca7c。需要 Node 22+ 和官方 Cursor Agent；不硬编码模型。
 
 ```sh
 npm test
-node scripts/install-local.mjs /absolute/path/to/disposable-test-project
+node scripts/install-local.mjs /absolute/path/to/fresh-test-project
 ```
 
-安装脚本将源码复制到 `~/.local/share/cursor-delegate-local/plugins/cursor-delegate`，只为该插件写入根目录与本机可执行文件路径，通过 Codex CLI 注册独立本地 marketplace 并安装。不会整份重写 Codex 配置。修改前备份配置与旧插件至该目录的 `backups/<时间>/`，备份不提交 Git。重新运行安装脚本可更新插件。
+目录必须是已授权、无敏感内容的短路径，位于共享临时目录外；当前 Cursor 的数据目录超过 84 字符会被提前拒绝。安装器可通过 `CODEX_BINARY`、`CURSOR_AGENT_COMMAND` 指定已安装的实际可执行文件，写入插件专用配置并在修改前备份，不覆盖整份 Codex 配置。安装器使用独立 `cursor-delegate-local` marketplace。
 
-打开新的 Codex App 任务，在插件中启用 **Cursor Delegate**，让 Codex 调用 `cursor_status`。返回根目录应等于安装时指定的目录；确认后才开始测试派工。CLI 安装成功并不证明 App 成功加载 MCP。
+本开发机已有 `cursor-delegate@personal`，沿用 `~/plugins/cursor-delegate`，不要再并行安装第二份。更新后让 App 重载插件，再实际调用 `cursor_status`；CLI 安装成功不能替代 App 验证。
 
-本次开发机先使用 Codex 官方脚手架安装为 `cursor-delegate@personal`，源码位于 `~/plugins/cursor-delegate`。若改用上述独立安装器，请先卸载旧的 personal 安装，避免同时启用两个 MCP 实例。
+生产 MCP 服务必须配置 `CURSOR_DELEGATE_CODEX_SANDBOX`，否则拒绝启动 Cursor。`CURSOR_DELEGATE_NETWORK=cursor-api` 只允许原生代理访问已核验的 `api2.cursor.sh`；未设置时网络全部拒绝。不能用工具参数或任务文字更改这些配置。
 
-## 日常派工
+## 登录与派工
 
-可以对 Codex 说：“在已授权项目内，让 Cursor 实现这个修复。你判断技术方案并独立运行测试，必要时在同一会话返修。”
+1. Codex 调用 `cursor_status`、`cursor_start`。新版启动先返回 `starting`；继续 `cursor_wait` 或读取状态。
+2. `awaiting_login` 时，Codex 将状态中的有效官方 `login_url` 展示给本人，在 Cursor 官方网页完成登录。不要向 Codex 提交 token，不用通用批准表单代替登录。
+3. 凭据由 Cursor 原生内存存储保存，插件不读取现有钥匙串、不复制或落盘凭据。只有实际 ACP 认证与建会话成功后才进入 `ready`，此前 `cursor_prompt` 会被拒绝。
+4. Codex 自行使用 `cursor_prompt → cursor_wait → cursor_answer → cursor_result` 协调普通问题和计划。读取结果到 EOF，检查真实目录中的文件和验证输出，再以新 request_id 在同一会话返修。
 
-工具顺序：`cursor_status` → `cursor_start` → `cursor_prompt` → `cursor_wait` → 按需 `cursor_answer` → `cursor_result`。Codex 阅读真实文件和测试结果后，用同一 session 的 `cursor_prompt` 提出修正，最后 `cursor_close`。
+可以直接说：“在已授权项目内，让 Cursor 实现这个修复。你决定技术方案，检查真实改动并安排返修。”Cursor 工作时，Codex 不同时修改同一批文件。
 
-- 问题和计划由 Codex 按实际内容审阅；不会一律回复“同意”，也不会默认要求用户批准。已有原生问答工具时使用回调；没有时以文本返回并结束本轮，由 Codex 在同会话答复。无需去父目录寻找通信协议。
-- 用户项目授权为外层约束；每次 `scope` 为内层派工范围，Codex 可在外层授权内调整。
-- 每次派工使用新的 `request_id`。观察超时只重新读取状态，不能重复发送原任务。
-- Cursor 活动期间，Codex 不写它负责的文件；工具始终回报规范化 `cwd`、会话、轮次和进程状态。
-- 模型使用 Cursor 现有默认配置；不提供未核验的模型参数，不改付费设置。
+## 权限与当前限制
 
-## 权限边界
+- 显式外层 Codex OS 沙箱限制文件和网络；不能把 Cursor 的 `--sandbox enabled`、工作目录检查或提示词当成隔离证明。当前状态仍标记完整集成尚在验证。
+- 原项目 `.cursor`、`.codex`、`.agents`、`.git` 和外层权限配置只读。Cursor 登录需要更新的会话偏好位于隔离缓存内；该偏好文件不是安全边界。凭据仍只在进程内存中。
+- 显式隔离内的 `pwd`、范围内 `ls` 和指定 Node 测试文件可形成 `confined_command`，由 Codex 检查实际代码后用 decision/reason 审阅，只允许本次操作。复合命令、越界路径、额外执行参数和其他权限请求继续拒绝；没有扩大权限或代填人类批准的工具。
+- 可信人类安全升级尚未接通，普通测试命令也仍可能被阻止；不要因此声称自主代码闭环已实现。官方登录链接交接也不授予代码执行权限。
+- 新隔离模式暂要求新测试目录；登录最多等待五分钟。取消、失败不自动重试。内存凭据在进程退出时消失，因此隔离模式暂不自动恢复；旧原生模式的独立恢复测试不能替代这一限制。
+- 其他 Cursor 服务域名、完整模型流量、登录后配置写入和实际代码返修尚未验证，不自动扩域名或降低验收标准。
 
-MCP 服务是用户级 Node 进程。它启动单独的 Cursor 进程组，显式使用 `--sandbox enabled acp`。**Codex 的沙箱不会自动覆盖 Cursor；根目录检查和派工提示也不是 OS 安全隔离。** 启动参数只是请求，不是隔离证明。已检查的 2026.05.28 和 2026.09.15 发行包中，ACP 的权限适配器返回 `insecure_none`；不能依赖该参数声称已建立 OS 隔离。状态中的 `sandbox_enforcement_verified=false` 明确表示未验证。不要扩大原生允许列表，首版保持在无敏感测试项目中。
+## 故障、停用和回退
 
-ACP `session/request_permission` 一律返回取消结果并终止会话；未知的客户端操作同样拒绝。没有允许权限的 MCP 工具，没有 `user_approved` 参数，普通计划接受不等于安全授权。安全拒绝或取消后，本服务进程锁定，不能通过 close/start 或 recover 继续；不得以重启服务绕过拒绝。
+`cursor_status` 给出真实 cwd、状态、进程及拒绝原因。观察超时只读取同一任务，不重发 prompt。`waiting` 的普通问题/计划由 Codex 回答；`blocked` 保持停止。需要停止时使用 `cursor_cancel`，它也取消登录并清除链接；`cursor_close` 释放会话。
 
-此默认值也可能拦住已授权的普通编辑/测试。如果 Cursor 原生接口要求权限批准，当前版本不能替用户完成可信批准，因此会阻塞，不能保证完整自主代码闭环。未来必须通过宿主可信人类交互解决，不能加入模型可自行填写的授权字段。
+先取消活动任务，再在 App 停用插件，或执行 `codex plugin remove cursor-delegate@personal`（独立安装器使用 `@cursor-delegate-local`）。回退时恢复该插件的备份源码和专用 `.mcp.json`，重新安装；不要覆盖整份旧 Codex 配置。卸载不会删除测试产物。
 
-既有 Cursor 配置仍可能影响原生权限。插件拒绝带 Cursor MCP 配置的工作区和用户环境，避免附带工具取得额外权限；不会主动覆盖用户的 CLI 权限或认证。当前配置变更与实际沙箱行为仍需在部署环境单独验证。首轮只用无敏感内容的测试项目。
+## 验证与来源
 
-## 人工授权能力：本机接口限制已确认
+`npm test` 是确定性测试；`test:sandbox`、`test:network`、`test:cursor-bootstrap` 是显式运行的本机探针。单元测试、真实 MCP/真实 Cursor、实际 App 验证分别报告，不能互相替代。
 
-`cursor_status.host_interaction.human_authorization` 现在报告宿主是否声明了
-`openai/elicitation.userVerification`。这是初始化握手中的能力，不接受派工文字、
-工具参数或通用表单回复来修改。即使声明支持，也必须具备可信的凭据验证才能放行；
-当前服务的 `available` 保持 false。
+已检查 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin) 的源码、规则、测试和许可证状态（ce257353ecae9061fe45d084cb80e2d0c46207cd）。该快照没有许可证，未复制其实现；此插件独立编写，采用仓库 MIT 许可。
 
-本机捆绑 Codex 核心的隔离协议实测为：普通表单支持、人类验证能力未声明。
-官方源码还明确限制配置型 MCP 启用该能力。普通表单曾在 App 展示且由用户点击，
-但不能替代可信人类验证。因此没有新增批准工具、虚假的等待批准状态或放行路径；
-权限请求仍在执行前被拒绝，并附上具体的能力缺失原因。重新安装、反复探测或扩大
-全局白名单不能修复这个接口限制。完整代码闭环仍未通过。
-
-## 宿主原生弹窗检查：展示已验证，Cursor 权限未接通
-
-新版提供 `cursor_probe_host_interaction`，只用于本插件接入验证。它在宿主声明支持 MCP form elicitation 时请求一个原生测试表单；宿主未声明时返回 unsupported，不尝试其他授权路径。45 秒无人回复会取消。
-
-在新的 Codex App 任务中启用插件，要求只调用此工具；出现弹窗后亲手选择“拒绝/取消”，再报告是否真的看到弹窗。此工具没有连接 Cursor 的代码，不启动会话、不读取项目，也不会授予任何权限。接受、拒绝、取消、错误、超时都不会解锁原会话。
-
-**返回 accept 不证明人类批准**：宿主可能自动处理请求。探针始终返回 `grants_permissions=false`、`human_identity_verified=false`，实际原生 UI 及其人类答复仍须单独验证。现有安全拒绝逻辑完全保留。
-
-2026-09-17 已在 App 内实际调用一次：宿主声明支持表单并返回 decline，但用户确认没有看到弹窗。当前任务采用 never 非交互审批策略；现有回执不包含具体拒绝原因。**人工授权通道未接通，整体代码委派闭环仍未通过。** 在宿主人工交互条件未改变前，不要重复探测或恢复被拒绝的 Cursor 任务；详见 [验证记录](VERIFICATION.md)。
-
-通过这个诊断后，还需确认可绑定具体操作的可信授权机制，并实现授权内普通操作与安全升级的分流，最后才启动新的真实代码闭环验收。不要反复重跑 add 测试，也不要为通过测试扩大全局白名单。
-
-## 故障定位
-
-```sh
-agent --version
-agent status
-node scripts/probe.mjs /absolute/path/to/disposable-test-project
-```
-
-探测只做真实 ACP 初始化、认证和建会话，不提交模型任务。认证超时会终止进程，不转为强制模式、不写凭据、不无限重试。
-
-- `waiting`：查看完整 pending，Codex 答复普通问题或计划。
-- `blocked`：`cursor_status.blocking` 直接显示拒绝来源、具体操作及原生原因；`cursor_result.safety_request` 保留原始请求。origin=bridge 表示插件收到权限请求后取消，不能把它混同为 Cursor 原生拒绝。没有相应新增授权和可信通道就保持停止。
-- `disconnected`：先检查真实文件及进程，确认已执行内容。若 Cursor 声明支持 session/load，`cursor_recover` 最多尝试一次加载同会话，不重放原 prompt。
-- `cancelled`：永久停止，不恢复。正在工作的任务用 `cursor_cancel` 取消。
-- MCP 服务重启丢失内存会话，自动恢复未实现；不能把不确定状态当作未执行而重复派工。
-- 结果仅保留当前轮，最大 1 MiB；下一轮前分页读取到 EOF。超限主动停止并报告失败。
-
-## 停用、回退
-
-先取消活动任务并关闭会话，然后在 App 插件页停用，或执行：
-
-```sh
-codex plugin remove cursor-delegate@cursor-delegate-local
-# 本次开发机的 personal 安装用：
-codex plugin remove cursor-delegate@personal
-```
-
-卸载不会删除源码或测试产物。需要回退插件代码时，将备份中的 `previous-plugin` 复制回该插件源码目录，重新安装。配置备份用于逐项比较恢复；不要把整份旧配置覆盖回去，以免抹掉其他插件后续变更。移除 marketplace 是可选步骤，应只移除本插件创建的独立来源。
-
-## 开发与来源
-
-无 npm 依赖。`npm test` 包含纯函数、模拟 ACP 子进程和真实 MCP stdio 服务测试；均不能替代真实 Cursor 和 App 验证。
-
-已检查 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin) 的实际源码、规则、配置与测试，提交 `ce257353ecae9061fe45d084cb80e2d0c46207cd`。该快照无许可证文件，GitHub license 字段为 null，因此未复制、修改或分发其代码/Skill。此实现独立编写，按本仓库 MIT 许可证提供。它没有继承上游的测试覆盖或兼容性保证。
-
-协议依据：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Cursor CLI 权限](https://cursor.com/docs/cli/reference/permissions)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)、[Codex MCP](https://developers.openai.com/codex/mcp)。没有照搬官方示例中的无条件 allow-once。
-
-最新实测补充：用户调整宿主权限后已看到并亲手批准无副作用探针。真实 Cursor 在同一会话完成技术问答和代码写入，但执行测试触发权限请求后仍被插件取消；整体闭环未通过。详见 [验证记录](VERIFICATION.md)。
-
-真实生命周期测试补充：已完成文字对话后的断线加载、运行中取消及取消后禁止恢复通过（独立驱动，非 App MCP）。无对话的空会话加载返回 Invalid params；运行中代码写入的恢复仍未验证。
-
-真实安全测试补充：伪造“用户已批准”未改变权限拒绝策略；真实 shell 权限请求被取消，哨兵文件未生成。越界编辑由模型主动拒绝，不能算 OS 隔离验证；详见验证记录。
+官方入口：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)。

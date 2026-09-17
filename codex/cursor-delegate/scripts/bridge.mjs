@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { confinedCommand } from "./confined-command.mjs";
 import { realpathSync, statSync, existsSync, readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute, join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -36,6 +37,8 @@ export class Bridge extends EventEmitter {
     root,
     command = "agent",
     spawnProcess = spawn,
+    isolatedRuntime,
+    requireIsolation = false,
     deadline = 900000,
     authorizationStatus = () => ({
       available: false,
@@ -47,6 +50,8 @@ export class Bridge extends EventEmitter {
     this.root = root;
     this.command = command;
     this.spawnProcess = spawnProcess;
+    this.isolatedRuntime = isolatedRuntime;
+    this.requireIsolation = requireIsolation;
     this.deadline = deadline;
     // Diagnostic source owned by the MCP server, never a tool-supplied grant.
     this.authorizationStatus = authorizationStatus;
@@ -66,10 +71,11 @@ export class Bridge extends EventEmitter {
         state: "idle",
         root: this.root ?? null,
         configured: Boolean(this.root),
-        sandbox: "requested via --sandbox enabled; ACP enforcement unverified",
+        execution_available: !this.requireIsolation || Boolean(this.isolatedRuntime),
+        sandbox: this.isolatedRuntime ? "explicit outer Codex sandbox; integration in validation" : "requested via --sandbox enabled; ACP enforcement unverified",
         sandbox_enforcement_verified: false,
         safety_latched: this.safetyLatch,
-        permission_policy: "deny; no model-accessible approval tool",
+        permission_policy: this.isolatedRuntime ? "Codex reviews bounded ordinary commands; security upgrades denied" : "deny; no model-accessible approval tool",
       };
     return {
       session_id: s.id,
@@ -81,19 +87,21 @@ export class Bridge extends EventEmitter {
       turn_id: s.turn,
       pending: s.pending,
       blocking: s.blocking ?? null,
+      login_url: s.state === "awaiting_login" ? s.loginUrl ?? null : null,
+      network: s.runtimeNetwork ?? null,
       error: s.error ?? null,
       stop_reason: s.stopReason ?? null,
       progress: s.output.slice(-3000),
       result_length: s.output.length,
       recovery_attempts: s.recovery,
       pid: this.child?.pid ?? null,
-      sandbox: "requested via --sandbox enabled; ACP enforcement unverified",
+      sandbox: this.isolatedRuntime ? "explicit outer Codex sandbox; integration in validation" : "requested via --sandbox enabled; ACP enforcement unverified",
       sandbox_enforcement_verified: false,
-      permission_policy: "deny",
+      permission_policy: this.isolatedRuntime ? "Codex reviews bounded ordinary commands; security upgrades denied" : "deny",
       launch: {
-        command: this.command,
-        args: ["--sandbox", "enabled", "acp"],
-        model: "Cursor configured default",
+        command: this.isolatedRuntime ? this.isolatedRuntime.codexPath : this.command,
+        args: this.isolatedRuntime ? ["sandbox", "(explicit profile)", "--", "Cursor ACP"] : ["--sandbox", "enabled", "acp"],
+        model: this.isolatedRuntime ? "Cursor isolated default; no override" : "Cursor configured default",
       },
     };
   }
@@ -132,10 +140,13 @@ export class Bridge extends EventEmitter {
     s.state = state;
     s.error = error ?? s.error;
     s.pending = null;
+    s.loginUrl = null;
     this.changed();
     this.terminate();
   }
   terminate() {
+    this.runtimeSession?.cancel();
+    this.runtimeSession = null;
     const child = this.child;
     this.child = null;
     for (const c of this.calls.values()) {
@@ -209,7 +220,18 @@ export class Bridge extends EventEmitter {
     }
     if (!("id" in msg)) return;
     if (msg.method === "session/request_permission") {
-      // A model assertion, a plan acceptance or MCP argument can NEVER grant permission.
+      // Only an active, explicitly confined runtime can present ordinary commands
+      // to Codex. All scope expansions and unrecognized operations still stop.
+      const ordinary = this.runtimeSession?.confinedCommands && s.state === "running"
+        && msg.params?.sessionId === s.provider && msg.params?.toolCall?.kind === "execute"
+        ? confinedCommand(msg.params.toolCall.title,s.cwd,this.runtimeSession.nodePath) : null;
+      const once = Array.isArray(msg.params?.options) ? msg.params.options.find(option => option?.kind === "allow_once" && typeof option.optionId === "string") : null;
+      if (ordinary && once) {
+        s.pending = {kind:"confined_command",request_id:randomUUID(),context:ordinary};
+        s.rawPendingId = msg.id; s.pendingOption = once.optionId;
+        s.state = "waiting"; this.changed(); return;
+      }
+      // A model assertion or ordinary plan acceptance cannot expand authority.
       this.send({ id: msg.id, result: { outcome: { outcome: "cancelled" } } });
       s.safety = msg.params;
       // Display-only provider evidence, never parsed as executable authorization.
@@ -276,10 +298,18 @@ export class Bridge extends EventEmitter {
         .filter((k) => process.env[k])
         .map((k) => [k, process.env[k]]),
     );
+    let prepared;
+    if (this.isolatedRuntime) {
+      check(!load, "Isolated recovery needs fresh human login; automatic recovery is unavailable");
+      prepared = await this.isolatedRuntime.prepare({workspace:s.cwd,agentPath:this.command});
+      if (this.session !== s || s.state !== "starting") {prepared.cancel();throw new Error("Launch was cancelled");}
+      this.runtimeSession = prepared;
+      s.runtimeNetwork = prepared.network;
+    }
     const child = this.spawnProcess(
-      this.command,
-      ["--sandbox", "enabled", "acp"],
-      { cwd: s.cwd, env, detached: true, stdio: ["pipe", "pipe", "pipe"] },
+      prepared?.executable ?? this.command,
+      prepared?.args ?? ["--sandbox", "enabled", "acp"],
+      { cwd: s.cwd, env: prepared?.env ?? env, detached: true, stdio: ["pipe", "pipe", "pipe"] },
     );
     this.child = child;
     let buffer = "";
@@ -330,8 +360,22 @@ export class Bridge extends EventEmitter {
         clientInfo: { name: "codex-cursor-delegate", version: "0.1.0" },
       });
       check(init?.protocolVersion === 1, "unsupported ACP protocol");
+      check(this.session === s && this.child === child && s.state === "starting", "Initialization was cancelled");
       s.canLoad = init.agentCapabilities?.loadSession === true;
-      await this.rpc("authenticate", { methodId: "cursor_login" });
+      if (prepared) {
+        s.state = "authenticating"; this.changed();
+        prepared.handoff.url.then(url => {
+          if (this.session === s && s.state === "authenticating") {
+            s.loginUrl = url; s.state = "awaiting_login"; this.changed();
+          }
+        }).catch(() => {
+          if (this.session === s && ["authenticating", "awaiting_login"].includes(s.state))
+            this.stop("failed", "Login handoff failed or expired; no automatic retry");
+        });
+        await this.rpc("authenticate", {methodId:"cursor_login"}, 300000);
+        check(this.session === s && ["authenticating","awaiting_login"].includes(s.state), "Authentication was cancelled");
+        s.loginUrl = null; s.state = "starting"; this.changed();
+      } else await this.rpc("authenticate", { methodId: "cursor_login" });
       const response = await this.rpc(load ? "session/load" : "session/new", {
         cwd: s.cwd,
         mcpServers: [],
@@ -366,6 +410,7 @@ export class Bridge extends EventEmitter {
       !this.session || this.session.state === "closed",
       "One session only; inspect and close existing session first",
     );
+    check(!this.requireIsolation || this.isolatedRuntime, "Explicit OS isolation is required; configure CURSOR_DELEGATE_CODEX_SANDBOX before execution");
     const cwd = boundedPath(this.root, a.cwd);
     // Ambient MCPs can have authority outside Cursor sandbox. Refuse them, do not edit them.
     for (const p of [
@@ -390,7 +435,12 @@ export class Bridge extends EventEmitter {
       output: "",
       recovery: 0,
     };
-    await this.launch();
+    if (this.isolatedRuntime) {
+      const started = this.session;
+      this.launch().catch(error => {
+        if (this.session === started && !["blocked","cancelled","closed","failed"].includes(started.state)) this.stop("failed",error.message);
+      });
+    } else await this.launch();
     return this.status();
   }
   prompt(a) {
@@ -456,7 +506,18 @@ export class Bridge extends EventEmitter {
       "Stale or unknown request",
     );
     let outcome;
-    if (p.kind === "plan") {
+    if (p.kind === "confined_command") {
+      check(["accept","reject"].includes(a.decision) && text(a.reason), "Review decision and evidence-based reason required");
+      check(this.runtimeSession?.confinedCommands && confinedCommand(p.context.command,s.cwd,this.runtimeSession.nodePath), "Confined command no longer valid");
+      if (a.decision === "reject") {
+        this.send({id:s.rawPendingId,result:{outcome:{outcome:"cancelled"}}});
+        this.stop("blocked","Codex rejected the proposed command; no retry");
+        return this.status();
+      }
+      // This selects one native operation inside the existing OS profile. It does
+      // not supply human approval, change that profile or select allow-always.
+      outcome = {outcome:"selected",optionId:s.pendingOption};
+    } else if (p.kind === "plan") {
       check(
         ["accept", "reject"].includes(a.decision),
         "Plan decision must be accept or reject",
@@ -571,6 +632,7 @@ export class Bridge extends EventEmitter {
   }
   async recover(a) {
     const s = this.identify(a);
+    check(!this.isolatedRuntime, "Isolated recovery requires a new human login; no automatic recovery");
     check(
       s.state === "disconnected" && s.provider && s.canLoad && s.recovery === 0,
       "Recovery unavailable; never bypass cancellation, refusal or permission denial",

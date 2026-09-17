@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { execFileSync } from "node:child_process";
+import { isolatedCursorLaunch } from "./isolated-launch.mjs";
 const root = process.argv[2];
 if (!root) {
   console.error(
@@ -21,6 +22,9 @@ if (!root) {
 }
 const cwd = realpathSync(root);
 if (root !== resolve(root)) throw Error("Use an absolute project path");
+const agent = process.env.CURSOR_AGENT_COMMAND || execFileSync("which", ["agent"], {encoding:"utf8"}).trim();
+const codex = realpathSync(process.env.CODEX_BINARY || execFileSync("which", ["codex"], {encoding:"utf8"}).trim());
+isolatedCursorLaunch({codexPath:codex,workspace:cwd,agentPath:realpathSync(agent)});
 const source = fileURLToPath(new URL("../", import.meta.url));
 const base = join(homedir(), ".local/share/cursor-delegate-local");
 const destination = join(base, "plugins/cursor-delegate");
@@ -43,20 +47,20 @@ for (const name of [
   "scripts",
   "skills",
   ".codex-plugin",
-  ".mcp.json",
   "README.md",
   "VERIFICATION.md",
 ])
   if (existsSync(join(source, name)))
     cpSync(join(source, name), join(destination, name), { recursive: true });
-const mcp = JSON.parse(readFileSync(join(destination, ".mcp.json"), "utf8"));
+const mcpPath = existsSync(join(destination,".mcp.json")) ? join(destination,".mcp.json") : join(source,".mcp.json");
+const mcp = JSON.parse(readFileSync(mcpPath, "utf8"));
 mcp.mcpServers["cursor-delegate"].command = process.execPath;
-const agent =
-  process.env.CURSOR_AGENT_COMMAND ||
-  execFileSync("which", ["agent"], { encoding: "utf8" }).trim();
 mcp.mcpServers["cursor-delegate"].env = {
+  ...mcp.mcpServers["cursor-delegate"].env,
   CURSOR_DELEGATE_ROOT: cwd,
   CURSOR_AGENT_COMMAND: realpathSync(agent),
+  CURSOR_DELEGATE_CODEX_SANDBOX: codex,
+  CURSOR_DELEGATE_NETWORK: "cursor-api",
 };
 writeFileSync(
   join(destination, ".mcp.json"),
@@ -100,13 +104,13 @@ if (
   throw Error(
     "Existing marketplace differs; refusing to replace or install another source",
   );
-execFileSync("codex", ["plugin", "marketplace", "add", base], {
-  stdio: "inherit",
+execFileSync(codex, ["plugin", "marketplace", "add", base], {
+  stdio: "inherit", timeout: 30000,
 });
 execFileSync(
-  "codex",
+  codex,
   ["plugin", "add", "cursor-delegate@cursor-delegate-local"],
-  { stdio: "inherit" },
+  { stdio: "inherit", timeout: 30000 },
 );
 console.log(
   `Installed for ${cwd}. Backup: ${backup}. Open a fresh Codex App task; verify cursor_status before delegation.`,
