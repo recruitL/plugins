@@ -3,7 +3,9 @@
     "cursor-delegate": {
       "command": "node",
       "cwd": ".",
-      "args": ["scripts/server.mjs"]
+      "args": [
+        "scripts/upstream-entry.mjs"
+      ]
     }
   }
 }

@@ -2,7 +2,7 @@
 
 本候选直接加载 [arikon/agents-cursor-subagent-plugin](https://github.com/arikon/agents-cursor-subagent-plugin) 固定版本 ce257353ecae9061fe45d084cb80e2d0c46207cd。上游负责 ACP、会话、问答、计划、等待、结果、取消与恢复；这里不重写这些能力。上游没有许可证，因此代码留在用户单独检出目录，不复制到此仓库。
 
-只增加两个小文件：upstream-entry.mjs 校验并加载上游，upstream-policy.mjs 更新工具说明并区分实际待决操作：普通范围内命令需 Codex 提供审阅理由，未知操作和安全升级不能放行。普通问题和计划仍使用原工具，由 Codex 决策，不要求用户审批项目流程。上游原 Skill 的普通问题/计划人工审批规则不安装。
+运行时只增加两个小文件：upstream-entry.mjs 校验并加载上游，upstream-policy.mjs 更新工具说明并区分实际待决操作：普通范围内命令需 Codex 提供审阅理由，未知操作和安全升级不能放行。普通问题和计划仍使用原工具，由 Codex 决策，不要求用户审批项目流程。上游原 Skill 的普通问题/计划人工审批规则不安装。
 
 ## 当前证据
 
@@ -12,7 +12,8 @@
 - 上述空会话使用只返回空对象的 readModelAuth 注入，不读取用户 auth.json；证明原生登录可用，不证明默认上游 API-key 分支。最终入口沿用上游认证实现；后续完整真实联调已成功，不要求重新登录。
 - 候选入口实际 MCP 初始化、列出 14 个上游工具、拒绝伪造人类批准参数：通过。未启动 Cursor，不是 App 验证。
 - 权限适配单测通过；本地完整回归 39/41，通过宿主沙箱外的针对性重跑后，原先失败的登录监听所在文件 6/6 通过。未声称一次完整运行 41/41。
-- 本轮插件通用校验器因环境缺少 PyYAML 未完成；插件清单和生产 MCP 配置未修改，入口语法和 git diff 检查通过。
+- 后续找到本任务已有 validation-venv，官方插件与 Skill 校验通过；没有为此安装系统依赖。源码默认配置和 Skill 已统一为上游入口；本机 App 缓存未更新。
+- 新准备器与实际上游 MCP 打包检查：6/6 通过。独立临时 HOME 内，真实 Codex CLI 安装及缓存回读通过，没有启动 Cursor；这不是 App 验证。
 - 用户明确批准本次原生联调后，真实 Cursor 写代码并测试，Codex 独立验收后同会话补充校验：初版 4/4，返修后 22/22 独立测试通过。
 - 普通问答/计划使用文本回合完成，由 Codex 自行答复；没有把原生问答/计划回调模拟测试算成这次真实结果。
 - 实际越界 touch 请求未获放行，伪造“用户已批准”被拒，哨兵文件不存在；随后取消，后续派工被拒。没有恢复该安全拒绝/取消后的会话。
@@ -32,4 +33,4 @@
 - CURSOR_SUBAGENT_ALLOWED_ROOTS：仅授权项目绝对路径的 JSON 数组。
 - CURSOR_AGENT_COMMAND：经过核验且支持 --auto-review 的官方 Cursor CLI 绝对路径。
 
-不设置 AGENT_CLI_CREDENTIAL_STORE=file，不覆盖认证文件，不启用 --force/--yolo。版本暂只在临时目录验证，尚未安装；不要把临时路径用于正式接入。当前生产 .mcp.json 未改。
+不设置 AGENT_CLI_CREDENTIAL_STORE=file，不覆盖认证文件，不启用 --force/--yolo。CLI 版本只在独立测试中验证，尚未替换全局 CLI；不要把临时路径用于正式接入。源码默认 .mcp.json 已指向本候选，prepare-upstream-install.mjs 生成专用配置；本机 App 安装缓存未替换。

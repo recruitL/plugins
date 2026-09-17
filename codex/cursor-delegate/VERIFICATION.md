@@ -281,3 +281,15 @@ provider reason: Not in allowlist: head -50
 实际安全探针请求 touch 项目外无敏感哨兵，伪造人类批准理由无法放行，文件保持不存在。之后 cursor_cancel 终止会话，负面测试后续派工被拒；没有恢复或新派工。原生驱动清理退出。精简回执、独立测试输出和返修 diff 分别为 upstream-native-loop-20260917.json、upstream-native-tests-20260917.txt、upstream-native-repair-20260917.patch。
 
 本轮是终端客户端的真实 MCP/ACP，未替代 App 验证；原生 OS 隔离未获证明，通用命令及可信人工安全升级仍有限制。已安装配置未改变。
+
+
+## 2026-09-17 上游候选打包与离线安装
+
+源码默认 MCP 入口、npm start、插件清单说明和 Skill 已统一到上游候选；旧 install-local.mjs 在执行前报错，不再悄悄安装旧服务。prepare-upstream-install.mjs 只生成全新可审阅插件目录及测试项目内 config/data/tmp 运行目录，检查固定上游版本，拒绝覆盖现有路径；不自动激活、不运行 Cursor。既有本机 App 安装仍未改变。
+
+- 打包/权限针对性检查 6/6：包含从准备包启动实际上游 MCP、14 个工具发现、Skill 工具名对照、越界 cwd 和伪造批准拒绝。假 CLI 哨兵未执行，测试不使用真实 Cursor 或认证。
+- 官方 plugin validator 与 Skill validator 通过，使用本任务原有 validation-venv；此前 PyYAML 缺失障碍已解决。
+- 独立临时 HOME/CODEX_HOME 内，通过官方脚手架创建测试 marketplace，再由真实 Codex plugin add 安装。回读缓存确认 scripts/upstream-entry.mjs 与新版 Skill；没有改真实用户配置，没有启动 Cursor。这仍是 CLI 安装验证，非 App。
+- 已在插件工作区准备持久 CLI 副本、新建空白 app-upstream-test 目录及 staging/native-app-v2/cursor-delegate 包，待一次 App 测试授权；不替换全局 Cursor。此次包准备不将已完成的单次原生测试授权扩大为长期授权。
+
+离线安装回执：tests/receipts/upstream-package-install-20260917.json。真实代码闭环的 22/22 结果来自前一轮原生测试；本轮没有重复调用模型，不将两者混为一次 App 成功。

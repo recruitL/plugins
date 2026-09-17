@@ -1,18 +1,24 @@
 {
   "name": "cursor-delegate",
   "version": "0.1.0",
-  "description": "Codex coordinates a single Cursor ACP coding session with fail-closed permissions.",
-  "author": { "name": "recruitL" },
+  "description": "Codex coordinates one native Cursor ACP session through a pinned upstream runtime; experimental safety boundary.",
+  "author": {
+    "name": "recruitL"
+  },
   "license": "MIT",
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Cursor Delegate",
     "shortDescription": "Codex 总控，Cursor 实现与返修",
-    "longDescription": "Single-session Cursor ACP delegation. Codex handles ordinary questions and plans; permission requests fail closed.",
+    "longDescription": "原生上游 ACP 接入候选。Codex 处理普通问题和计划并验收返修；未知权限请求保持阻塞，完整隔离与新版 App 接入尚未验证。",
     "developerName": "recruitL",
     "category": "Productivity",
-    "capabilities": ["mcp"],
-    "defaultPrompt": ["委派 Cursor 完成当前项目中的代码任务，并独立验收。"]
+    "capabilities": [
+      "mcp"
+    ],
+    "defaultPrompt": [
+      "委派 Cursor 完成当前项目中的代码任务，并独立验收。"
+    ]
   }
 }

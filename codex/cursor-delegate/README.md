@@ -1,69 +1,57 @@
-# Cursor Delegate（接入验证版）
+# Cursor Delegate（原生上游接入候选）
 
-Codex App → MCP 服务 → Cursor 官方 ACP。Codex 审阅普通技术问题和计划，读取实际产物并安排同会话返修；Cursor 负责代码实现。没有独立总控界面、任务数据库或额外付费服务。
+Codex App → 插件 MCP → Cursor 官方 ACP。Codex 决定技术方案、协调普通问题和计划、独立验收及安排返修；Cursor 负责实现。首版只使用一个执行会话。
 
-**整体接入尚未通过。** 经用户授权的原生上游联调已完成真实代码、测试、同会话返修和 Codex 独立验收（22/22），越界请求及取消检查也已完成。新版候选的 App 发现/调用尚未验证，当前安装入口仍是旧版；不能把终端 MCP 联调称为 App 接入成功。分层证据见 [VERIFICATION.md](VERIFICATION.md)。
+**真实原生实现与同会话返修已通过，独立测试 22/22；新版 App 接入未验证，整体未通过。** 当前 App 安装缓存仍是旧服务。本源码的默认入口及 Skill 已统一为上游候选，更新源码不等于更新 App。
 
-当前候选直接复用上游会话服务，已验证原生登录复用、真实 MCP 派工、代码实现与返修；尚未替换 App 已安装的旧入口。候选源码、权限差异和证据见 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。
+直接加载固定版本的 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin)。上游没有许可证，因此不复制其源码；用户需保留单独检出目录。桥接没有重新实现通信和会话管理。详见 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。
 
-## 当前推荐路线
+## 安装准备
 
-使用 [上游复用候选](UPSTREAM-REUSE.md)：保留上游通信和会话实现，仅增加入口校验及权限答复策略。当前允许的运行范围仅是用户明确批准的本次无敏感内容测试；不能把它当作通用生产授权。
+需要 Node 22+、单独的固定上游检出，以及支持 `--auto-review --sandbox enabled` 的官方 Cursor CLI。实际验证版本是 `2026.09.15-d2fe57e`；本机旧 `2026.05.28` 不支持所需参数。复用现有原生登录，不复制或覆盖认证文件；不设置文件凭据存储、不启用 force/yolo。
 
-真实问题与计划由 Codex 审阅后，在同一会话继续派工；Codex 检查实际文件再审阅普通测试命令。安全升级没有可信人工授权通道，保持阻塞。Cursor 原生自动审阅可能在请求到达桥接前处理操作，因此本候选尚未证明全面拦截或 OS 隔离。
-
-候选配置与真实回执在 [UPSTREAM-REUSE.md](UPSTREAM-REUSE.md)。不要运行下面的旧安装器来安装候选：它仍安装旧服务。当前不需要再次登录。
-
-## 旧隔离实现：保留供回退，以下不是候选安装说明
-
-### 安装与启用
-
-当前隔离实现仅验证 macOS、Codex 0.153.4、Cursor Agent 2026.05.28-a70ca7c。需要 Node 22+ 和官方 Cursor Agent；不硬编码模型。
+先生成可检查的安装目录（四个参数均为绝对路径，最后一层必须叫 cursor-delegate）：
 
 ```sh
-npm test
-node scripts/install-local.mjs /absolute/path/to/fresh-test-project
+node scripts/prepare-upstream-install.mjs \
+  /absolute/authorized/test-project \
+  /absolute/pinned-upstream-checkout \
+  /absolute/official-cursor-cli \
+  /absolute/new-staging-directory/cursor-delegate
 ```
 
-目录必须是已授权、无敏感内容的短路径，位于共享临时目录外；当前 Cursor 的数据目录超过 84 字符会被提前拒绝。安装器可通过 `CODEX_BINARY`、`CURSOR_AGENT_COMMAND` 指定已安装的实际可执行文件，写入插件专用配置并在修改前备份，不覆盖整份 Codex 配置。安装器使用独立 `cursor-delegate-local` marketplace。
+准备器只生成新插件目录及测试项目内的 config/data/tmp 运行目录，不覆盖已有插件目录，不启动 Cursor，不修改宿主配置。输出包含清单、Skill、三份运行脚本和专用 `.mcp.json`；引用的上游及 CLI 必须位于持久位置。原来的 `install-local.mjs` 已停用，避免误装旧服务。
 
-本开发机已有 `cursor-delegate@personal`，沿用 `~/plugins/cursor-delegate`，不要再并行安装第二份。更新后让 App 重载插件，再实际调用 `cursor_status`；CLI 安装成功不能替代 App 验证。
+## 本机启用
 
-生产 MCP 服务必须配置 `CURSOR_DELEGATE_CODEX_SANDBOX`，否则拒绝启动 Cursor。`CURSOR_DELEGATE_NETWORK=cursor-api` 只允许原生代理访问已核验的 `api2.cursor.sh`；未设置时网络全部拒绝。默认 HTTP 模式 limited 只允许 GET/HEAD/OPTIONS，已实测会阻止 Cursor 必需的初始化 POST，不能用此默认模式宣称已可用。
+**原生权限边界必须获得对应运行范围的明确授权。** 本次用户只批准了一次无敏感内容联调，不涵盖一般生产使用。没有后续授权时保留准备包，不启用实际 Cursor 工作。
 
-在用户明确授权后，可在本插件用户级 MCP 环境中设置 `CURSOR_DELEGATE_API_HTTP_MODE=full`。此设置只取消 `api2.cursor.sh` 的 HTTP 方法限制（不限于 POST），其域名允许列表、文件隔离、禁止直连和 SOCKS/UDP 禁用仍保留。它不是全局沙箱 full access；但仍是网络权限扩大，不应由模型通过工具参数或任务文字自行启用。缺省保持 limited；删除此环境项并重载即可回退。安装器不会自动打开它。
+已有 personal 安装时，按 Codex 官方 plugin-creator 更新流程操作：
 
-## 登录与派工
+1. 读取 marketplace 名称并确认现有条目确实指向 `~/plugins/cursor-delegate`。
+2. 将旧插件目录及 Codex 配置备份到仅用户可读目录。配置备份仅用于比对，不整体覆盖恢复。
+3. 用已检查的准备包替换该插件源码；保留其他插件和 marketplace 设置，不创建第二个同名来源。
+4. 运行官方 `update_plugin_cachebuster.py`，再执行 `codex plugin add cursor-delegate@personal`。
+5. 新 App 任务实际发现并调用 `cursor_start_session` 等新版工具才算 App 验证；终端 tools/list 或 CLI 安装成功不能代替它。
 
-1. Codex 调用 `cursor_status`、`cursor_start`。新版启动先返回 `starting`；继续 `cursor_wait` 或读取状态。
-2. `awaiting_login` 时，Codex 将状态中的有效官方 `login_url` 展示给本人，在 Cursor 官方网页完成登录。不要向 Codex 提交 token，不用通用批准表单代替登录。
-3. 凭据由 Cursor 原生内存存储保存，插件不读取现有钥匙串、不复制或落盘凭据。只有实际 ACP 认证与建会话成功后才进入 `ready`，此前 `cursor_prompt` 会被拒绝。
-4. Codex 自行使用 `cursor_prompt → cursor_wait → cursor_answer → cursor_result` 协调普通问题和计划。读取结果到 EOF，检查真实目录中的文件和验证输出，再以新 request_id 在同一会话返修。
+本仓库不内置隐式下载、自动批准或宿主审批策略修改。首次没有 marketplace 条目时，应由官方 plugin-creator 脚手架创建；不要手工覆盖整个 marketplace 文件。
 
-可以直接说：“在已授权项目内，让 Cursor 实现这个修复。你决定技术方案，检查真实改动并安排返修。”Cursor 工作时，Codex 不同时修改同一批文件。
+## 日常派工与故障
 
-## 权限与当前限制
+在已有授权覆盖且验证可用的环境中，可以说：“让 Cursor 完成这个修复，你审阅方案、检查真实改动并安排返修。”Codex 使用 `cursor_start_session → cursor_send_prompt → cursor_wait/cursor_session_status → cursor_read_result`；普通问答与计划由 Codex 回答，不作为用户审批关卡。完整读取结果后检查实际 cwd、文件和测试，再在同一会话返修。Cursor 工作期间不要同时修改相同文件。
 
-- 显式外层 Codex OS 沙箱限制文件和网络；不能把 Cursor 的 `--sandbox enabled`、工作目录检查或提示词当成隔离证明。当前状态仍标记完整集成尚在验证。
-- 原项目 `.cursor`、`.codex`、`.agents`、`.git` 和外层权限配置只读。Cursor 登录需要更新的会话偏好位于隔离缓存内；该偏好文件不是安全边界。凭据仍只在进程内存中。
-- 显式隔离内的 `pwd`、范围内 `ls` 和指定 Node 测试文件可形成 `confined_command`，由 Codex 检查实际代码后用 decision/reason 审阅，只允许本次操作。复合命令、越界路径、额外执行参数和其他权限请求继续拒绝；没有扩大权限或代填人类批准的工具。
-- 可信人类安全升级尚未接通，普通测试命令也仍可能被阻止；不要因此声称自主代码闭环已实现。官方登录链接交接也不授予代码执行权限。
-- 新隔离模式暂要求新测试目录；登录最多等待五分钟。取消、失败不自动重试。内存凭据在进程退出时消失，因此隔离模式暂不自动恢复；旧原生模式的独立恢复测试不能替代这一限制。
-- 新增 Agent 服务域名、完整模型流量和实际代码返修尚未验证，不自动扩域名或降低验收标准。
+观察超时只检查同一任务，不重发 prompt。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。
 
-## 故障、停用和回退
+若看到旧 `cursor_status/cursor_prompt`，说明 App 仍加载旧缓存，不能据此重复登录。若候选启动失败，检查上游版本与改动状态、绝对路径和 CLI 参数支持。模型列表可能要求独立 API key，不能为列出模型擅自获取付费凭据；已验证流程使用上游默认模型。
 
-`cursor_status` 给出真实 cwd、状态、进程及拒绝原因。观察超时只读取同一任务，不重发 prompt。`waiting` 的普通问题/计划由 Codex 回答；`blocked` 保持停止。需要停止时使用 `cursor_cancel`，它也取消登录并清除链接；`cursor_close` 释放会话。
+## 权限限制与回退
 
-先取消活动任务，再在 App 停用插件，或执行 `codex plugin remove cursor-delegate@personal`（独立安装器使用 `@cursor-delegate-local`）。回退时恢复该插件的备份源码和专用 `.mcp.json`，重新安装；不要覆盖整份旧 Codex 配置。卸载不会删除测试产物。
+原生 Cursor 以本机账户权限运行；根目录检查不是 OS 沙箱。上游自动审阅可能在请求到达 MCP 前执行操作，`--sandbox enabled` 尚未证明 ACP 全面隔离。适配器只审阅到达它的指定普通命令，不能宣称覆盖所有工具。
 
-## 验证与来源
+未知操作和安全升级保持阻塞，没有可信人工升级通道。模型声称“用户已批准”不授予权限。命令名称受限也不保证测试代码没有副作用，Codex 必须检查实际代码与现有授权。
 
-`npm test` 是确定性测试；`test:sandbox`、`test:network`、`test:cursor-bootstrap` 是显式运行的本机探针。单元测试、真实 MCP/真实 Cursor、实际 App 验证分别报告，不能互相替代。
+先取消活动任务，再从 App 停用插件，或 `codex plugin remove cursor-delegate@personal`。回退只恢复旧插件源码及其专用配置，重新 cachebuster/安装；不覆盖整份 Codex 配置。测试项目不会随卸载删除。
 
-已检查 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin) 的源码、规则、测试和许可证状态（ce257353ecae9061fe45d084cb80e2d0c46207cd）。该快照没有许可证，未复制其实现；此插件独立编写，采用仓库 MIT 许可。
+## 验证
 
-官方入口：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)。
-
-
-登录故障定位：网页显示成功后仍以 cursor_status 为准。ready 才可派工；failed 时检查 failure_stage、diagnostic 和 authentication_completed。认证握手已完成也不代表 session/new 成功。diagnostic 仅含固定错误类别，unclassified 表示原因仍未知，不应要求用户盲目重复登录或放宽权限。过期的链接不能让已退出进程恢复；检查实际状态后才能安排新的人工登录。
+`npm test` 是本仓库测试，其中含历史旧服务回归；它不等于上游原生或 App 验证。准备后的包还需分别检查官方 plugin/Skill 校验、实际 MCP 初始化与工具发现、真实 Cursor 闭环、App 内调用。[VERIFICATION.md](VERIFICATION.md) 按时间保留证据，最新记录优先。
