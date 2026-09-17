@@ -50,3 +50,6 @@ node scripts/install-local.mjs /absolute/path/to/fresh-test-project
 已检查 [arikon 上游](https://github.com/arikon/agents-cursor-subagent-plugin) 的源码、规则、测试和许可证状态（ce257353ecae9061fe45d084cb80e2d0c46207cd）。该快照没有许可证，未复制其实现；此插件独立编写，采用仓库 MIT 许可。
 
 官方入口：[Cursor ACP](https://cursor.com/docs/cli/acp)、[Codex MCP](https://developers.openai.com/codex/mcp)、[Codex 插件](https://learn.chatgpt.com/codex/build-plugins)。
+
+
+登录故障定位：网页显示成功后仍以 cursor_status 为准。ready 才可派工；failed 时检查 failure_stage、diagnostic 和 authentication_completed。认证握手已完成也不代表 session/new 成功。diagnostic 仅含固定错误类别，unclassified 表示原因仍未知，不应要求用户盲目重复登录或放宽权限。过期的链接不能让已退出进程恢复；检查实际状态后才能安排新的人工登录。

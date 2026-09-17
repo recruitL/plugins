@@ -26,11 +26,14 @@ readline.createInterface({ input: process.stdin }).on("line", (line) => {
       agentCapabilities: { loadSession: true },
     });
   else if (m.method === "authenticate") {
-    if(process.env.FIXTURE_DEFER_AUTH) authId=m.id; else reply(m.id,{});
+    if(process.env.FIXTURE_AUTH_ERROR) send({id:m.id,error:{code:-32603,message:'Internal error',data:{message:'EPERM: mkdir private-location SECRET_TOKEN https://example.test/?token=SECRET_TOKEN'}}});
+    else if(process.env.FIXTURE_DEFER_AUTH) authId=m.id; else reply(m.id,{});
   }
   else if(m.method === "test/release_auth") reply(authId,{});
-  else if (["session/new", "session/load"].includes(m.method))
-    reply(m.id, { sessionId: "provider-1" });
+  else if (["session/new", "session/load"].includes(m.method)) {
+    if(process.env.FIXTURE_SESSION_ERROR) send({id:m.id,error:{code:-32603,message:'Internal error',data:{message:'Failed to initialize session services'}}});
+    else reply(m.id, { sessionId: "provider-1" });
+  }
   else if (m.method === "session/prompt") {
     promptId = m.id;
     promptText = m.params.prompt[0].text;

@@ -63,3 +63,20 @@ test('Codex reviews a confined test once; this cannot choose allow-always or exp
  const reply=JSON.parse(readFileSync(join(x.root,'answered-undefined'),'utf8'));assert.deepEqual(reply.outcome,{outcome:'selected',optionId:'once-only'});
  assert.throws(()=>x.b.answer({...answer,reason:'repeat'}),/Stale/);
 });
+
+test('native generic authentication error retains safe cause and stage without leaking provider data',async t=>{
+ const x=setup(t);x.prepared.env.FIXTURE_AUTH_ERROR='1';
+ await x.b.start({cwd:x.root});const failed=await state(x.b,'failed');await x.b.stopping;
+ assert.equal(failed.failure_stage,'authenticate');assert.equal(failed.authentication_completed,false);
+ assert.deepEqual(failed.diagnostic,{method:'authenticate',code:-32603,signals:['EPERM'],detail_withheld:true});
+ assert.equal(failed.pid,null);assert.equal(failed.login_url,null);
+ assert.doesNotMatch(JSON.stringify(failed),/SECRET_TOKEN|example\.test|private-location/);
+});
+
+test('session initialization failure is distinguished from failed authentication',async t=>{
+ const x=setup(t);x.prepared.env.FIXTURE_SESSION_ERROR='1';
+ await x.b.start({cwd:x.root});await state(x.b,'authenticating');x.b.send({id:999,method:'test/release_auth'});
+ const failed=await state(x.b,'failed');await x.b.stopping;
+ assert.equal(failed.failure_stage,'session/new');assert.equal(failed.authentication_completed,true);
+ assert.deepEqual(failed.diagnostic.signals,['service_initialization_failed']);
+});

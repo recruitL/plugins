@@ -229,3 +229,14 @@ provider reason: Not in allowlist: head -50
 
 
 已将新版源码复制到 personal 插件并通过 Codex CLI 重装，备份保留在本任务 backups/before-isolated-runtime-20260917T053916Z；专用配置改为新建无敏感 app-live 测试目录、显式 Codex 沙箱和单一官方 API 代理。没有覆盖其他插件或整份 Codex 配置。随后实际 App cursor_status 仍返回旧 test-project 根目录和旧 deny 策略，说明当前 App 的 MCP 实例尚未重载；没有在旧实例继续派工。新版 App 调用、真实账号登录、普通测试执行及返修尚未验证，需要宿主重载后继续。
+
+
+## 2026-09-17 App 重载与真实登录联调：内部错误，未通过
+
+实际 App cursor_status 已返回新 app-live 根目录及显式隔离策略；cursor_start/cursor_wait 在 App 内调用，真实 Cursor 到达 awaiting_login 并交接官方链接。首轮等待五分钟超时，已核对旧启动进程不存在后关闭回执；没有发送模型任务。用户完成网页操作后，第二次独立登录尝试在新子目录 r1 返回 Internal error、pid=null、cursor_session_id=null。不是安全拒绝，也没有恢复此前被拒绝的会话；这次仍未证实 ACP authenticate 成功。精简回执见 [app-isolated-auth-20260917.json](tests/receipts/app-isolated-auth-20260917.json)。
+
+原桥接只保留 ACP error.message，丢失 error.data 中可能存在的底层原因。现补充 failure_stage、authentication_completed 和 diagnostic：仅输出固定方法名、数字错误码与枚举错误分类，不输出原始 data、URL、路径或凭据；未知原因保持 unclassified。该诊断不能自动授权或触发重试，也不能反推出已丢失的旧错误。真实系统日志检查没有匹配拒绝记录，不据此宣称不存在权限故障。
+
+新增通用内部错误含底层 EPERM、敏感文本不泄漏、有界嵌套数据、认证与 session/new 失败区分的回归验证。诊断改动不代表原生登录故障已修复；真实登录、代码测试和同会话返修仍未通过。
+
+本轮确定性测试 38/38 通过，插件结构校验通过。诊断版已备份并安装为 0.1.0+codex.20260917062308；备份 before-auth-diagnostics-20260917T062308Z，原 .mcp.json 完全保留。当前 App 中仍是旧 MCP 进程，诊断字段的真实 App 返回及故障根因尚待宿主重载后验证。

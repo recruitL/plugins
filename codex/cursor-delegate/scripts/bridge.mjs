@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { rpcDiagnostic } from "./rpc-diagnostic.mjs";
 import { confinedCommand } from "./confined-command.mjs";
 import { realpathSync, statSync, existsSync, readFileSync } from "node:fs";
 import { resolve, relative, isAbsolute, join } from "node:path";
@@ -90,6 +91,9 @@ export class Bridge extends EventEmitter {
       login_url: s.state === "awaiting_login" ? s.loginUrl ?? null : null,
       network: s.runtimeNetwork ?? null,
       error: s.error ?? null,
+      failure_stage: s.failureStage ?? null,
+      diagnostic: s.rpcDiagnostic ?? null,
+      authentication_completed: s.authenticated === true,
       stop_reason: s.stopReason ?? null,
       progress: s.output.slice(-3000),
       result_length: s.output.length,
@@ -123,7 +127,7 @@ export class Bridge extends EventEmitter {
         this.calls.delete(id);
         reject(new Error(`${method} timeout; execution state uncertain`));
       }, ms);
-      this.calls.set(id, { resolve, reject, timer });
+      this.calls.set(id, { resolve, reject, timer, method });
       try {
         this.send({ id, method, params });
       } catch (e) {
@@ -190,11 +194,11 @@ export class Bridge extends EventEmitter {
       if (!call) return;
       this.calls.delete(msg.id);
       clearTimeout(call.timer);
-      msg.error
-        ? call.reject(
-            new Error(String(msg.error.message ?? "ACP error").slice(0, 1000)),
-          )
-        : call.resolve(msg.result);
+      if (msg.error) {
+        const diagnostic = rpcDiagnostic(msg.error, call.method);
+        if (s) { s.failureStage = diagnostic.method; s.rpcDiagnostic = diagnostic; }
+        call.reject(new Error(`Cursor ACP ${diagnostic.method} failed (code ${diagnostic.code ?? "unknown"}; ${diagnostic.signals.join(", ") || "unclassified"})`));
+      } else call.resolve(msg.result);
       return;
     }
     if (msg.method === "session/update") {
@@ -350,6 +354,8 @@ export class Bridge extends EventEmitter {
           "Cursor process exited; inspect files before recovery",
         );
     });
+    s.failureStage = null; s.rpcDiagnostic = null; s.authenticated = false;
+    let stage = "initialize";
     try {
       const init = await this.rpc("initialize", {
         protocolVersion: 1,
@@ -362,6 +368,7 @@ export class Bridge extends EventEmitter {
       check(init?.protocolVersion === 1, "unsupported ACP protocol");
       check(this.session === s && this.child === child && s.state === "starting", "Initialization was cancelled");
       s.canLoad = init.agentCapabilities?.loadSession === true;
+      stage = "authenticate";
       if (prepared) {
         s.state = "authenticating"; this.changed();
         prepared.handoff.url.then(url => {
@@ -376,7 +383,9 @@ export class Bridge extends EventEmitter {
         check(this.session === s && ["authenticating","awaiting_login"].includes(s.state), "Authentication was cancelled");
         s.loginUrl = null; s.state = "starting"; this.changed();
       } else await this.rpc("authenticate", { methodId: "cursor_login" });
-      const response = await this.rpc(load ? "session/load" : "session/new", {
+      s.authenticated = true;
+      stage = load ? "session/load" : "session/new";
+      const response = await this.rpc(stage, {
         cwd: s.cwd,
         mcpServers: [],
         ...(load ? { sessionId: s.provider } : {}),
@@ -392,8 +401,10 @@ export class Bridge extends EventEmitter {
       if (
         this.session === s &&
         !["blocked", "cancelled", "closed"].includes(s.state)
-      )
+      ) {
+        s.failureStage ??= stage;
         this.stop("failed", e.message);
+      }
       throw e;
     }
   }
