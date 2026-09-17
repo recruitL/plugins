@@ -153,3 +153,16 @@ provider reason: Not in allowlist: head -50
 ### 用户重启后的 App 实际验证
 
 用户确认重启 App 后，本任务再次真实调用 cursor_status。返回新版 sandbox 字段以及 sandbox_enforcement_verified=false，证明最新运行时已被 App 加载。state=idle，configured=true，根目录仍为指定测试项目。host_interaction.human_authorization.available=false，user_verification_advertised=false，permission_request_action=deny_before_execution。未启动 Cursor、未请求授权、未重试被拒绝操作。新版加载验证通过；可信授权与 ACP 隔离限制未消除，代码执行测试与同会话返修仍未通过。
+
+
+## 显式外层 OS 沙箱原型：真实探针通过，尚未接入 Cursor
+
+`scripts/isolated-launch.mjs` 显式调用本机 Codex 0.153.4 的 `sandbox --sandbox-state-json`，使用 managed/restricted 文件策略、指定工作区可写、运行依赖只读、配置目录只读、网络 restricted。它不依赖 Cursor 的 --sandbox 参数，不提供权限升级或自动批准开关。目前仅由 opt-in 探针使用，默认 Bridge 没有调用它。
+
+实测中发现两个失败：缺少平台最小依赖时 Node 无法启动；加入 :minimal 后，平台默认放行共享临时目录，普通 path deny 未覆盖该授权，临时哨兵测试确实出现目录外写入。修正为工作区位于共享临时目录之外，并为这些目录同时设置 glob deny 后，真实 macOS 测试的 10 项检查通过：内层写入成功；外部读写、符号链接读写、保护配置写入、共享临时目录读写、子进程越界写入、向正在监听的本机测试端口连接均按预期被拒绝。监听器连接数为 0，外部及临时目录只保留原哨兵。精简回执见 [outer-sandbox-20260917.json](tests/receipts/outer-sandbox-20260917.json)。这是实际 OS 执行，既非模拟，也非 Cursor/App 联调。
+
+独立复现：`npm run test:sandbox -- /absolute/dedicated/test-parent /absolute/path/to/codex`。父目录须已存在、位于共享临时目录之外；探针只创建自己的子目录和无敏感哨兵，保留回执，不读取用户认证。当前 Codex shell 沙箱不允许嵌套创建 seatbelt，因此此测试通过宿主许可启动受限沙箱；这个前提不能冒充 App MCP 内也已验证。
+
+尚未验证/实现：Cursor 在此外层沙箱内的认证、官方服务联网、会话存储、App MCP 内启动、普通权限请求的范围判断和完整代码返修闭环。网络目前全部拒绝，因此不能直接用于真实 Cursor 模型任务。没有修改已安装服务或允许列表，也没有恢复此前拒绝的会话。
+
+启动器接口和平台默认行为核对来源：[Codex 启动实现](https://github.com/openai/codex/blob/main/codex-rs/cli/src/debug_sandbox.rs)、[macOS 策略实现](https://github.com/openai/codex/blob/main/codex-rs/sandboxing/src/seatbelt.rs)。以实际捆绑版本和探针结果为准，源码 main 可能继续变化。
