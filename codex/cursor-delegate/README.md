@@ -38,6 +38,8 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 日常派工与故障
 
+派工运行时会带上实际会话目录；执行测试使用项目内文件的绝对路径，避免把插件子目录误当仓库根目录。权限答复中的 `configuration_mismatch` 表示路径/配置不匹配，`bridge_unsupported` 表示桥接尚不支持该操作形式，`request_mismatch` 表示待决请求已变化；核对同一会话与实际文件后再安排正确操作。`authorization_required` 表示已识别的越界路径，保持阻塞。原生拒绝原样返回，不自动重试。没有命令会因错误分类而自动获准。
+
 在已有授权覆盖且验证可用的环境中，可以说：“让 Cursor 完成这个修复，你审阅方案、检查真实改动并安排返修。”Codex 使用 `cursor_start_session → cursor_send_prompt → cursor_wait/cursor_session_status → cursor_read_result`；普通问答与计划由 Codex 回答，不作为用户审批关卡。完整读取结果后检查实际 cwd、文件和测试，再在同一会话返修。Cursor 工作期间不要同时修改相同文件。
 
 观察超时只检查同一任务，不重发 prompt。意外断线先核对进程与产物，最多显式加载同一 provider 会话一次；不能在取消或安全拒绝后自动恢复。停止活动回合用 `cursor_cancel`，释放空闲会话用 `cursor_close_session`。普通任务结束后保留插件安装，供下次派工。

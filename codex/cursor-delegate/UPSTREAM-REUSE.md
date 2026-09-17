@@ -23,9 +23,9 @@
 
 ## 启用前必须明确的权限差异
 
-本候选沿用上游 --auto-review --sandbox enabled。Cursor 的 Smart Auto 分类器可自动运行它认为安全的操作；到达 MCP 的普通 pwd/ls、指定 Node 测试及已核验的固定只读准备命令由 Codex 审阅；执行前依据实际 pending 请求、实际 cwd 和路径重新检查。未知/安全升级请求不能由模型放行。它不具备可信人工授权通道。
+本候选沿用上游 --auto-review --sandbox enabled。Cursor 的 Smart Auto 分类器可自动运行它认为安全的操作；到达 MCP 的普通 pwd/ls、指定 Node 测试由 Codex 审阅；执行前依据实际 pending 请求、实际 cwd 和路径重新检查。未知/安全升级请求不能由模型放行。它不具备可信人工授权通道。
 
-这是本机原生 Cursor 进程，没有旧候选额外的 Codex OS 沙箱和 api2 单域名代理。根目录检查不是 OS 隔离，--sandbox enabled 也尚未证明 ACP 的命令隔离。限制 MCP 权限答复不能证明所有 Cursor 内部工具都被覆盖。用户授权的原生联调与单次 App 测试均已完成，未提升为一般生产授权。因此不能把本候选宣称为满足全部安全验收；未经后续明确授权与验证，不重新启用候选，也不用它绕过此前拒绝。
+这是本机原生 Cursor 进程，没有旧候选额外的 Codex OS 沙箱和 api2 单域名代理。根目录检查不是 OS 隔离，--sandbox enabled 也尚未证明 ACP 的命令隔离。限制 MCP 权限答复不能证明所有 Cursor 内部工具都被覆盖。早期单次测试已经结束；用户随后明确授权按项目日常委派。现保留安装、目录限制和原生权限，不绕过此前拒绝。
 
 ## 候选配置
 
@@ -35,4 +35,4 @@
 - CURSOR_SUBAGENT_ALLOWED_ROOTS：仅授权项目绝对路径的 JSON 数组。
 - CURSOR_AGENT_COMMAND：经过核验且支持 --auto-review 的官方 Cursor CLI 绝对路径。
 
-不设置 AGENT_CLI_CREDENTIAL_STORE=file，不覆盖认证文件，不启用 --force/--yolo。CLI 版本只在独立测试中验证，尚未替换全局 CLI；不要把临时路径用于正式接入。源码默认 .mcp.json 已指向本候选，prepare-upstream-install.mjs 生成专用配置；本机候选曾完成安装与 App 测试，之后已卸载。
+不设置 AGENT_CLI_CREDENTIAL_STORE=file，不覆盖认证文件，不启用 --force/--yolo。CLI 版本只在独立测试中验证，尚未替换全局 CLI；不要把临时路径用于正式接入。源码默认 .mcp.json 已指向本候选，prepare-upstream-install.mjs 生成专用配置；本机候选曾在测试结束后卸载，随后按用户要求恢复安装供日常使用。

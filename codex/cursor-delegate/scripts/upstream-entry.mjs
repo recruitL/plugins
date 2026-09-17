@@ -16,5 +16,5 @@ if (git('rev-parse','HEAD') !== revision || git('status','--porcelain','--untrac
 if (!process.env.CURSOR_SUBAGENT_ALLOWED_ROOTS) throw new Error('Explicit authorized workspace roots are required');
 if (!isAbsolute(process.env.CURSOR_AGENT_COMMAND ?? '')) throw new Error('An absolute verified Cursor CLI path is required');
 const upstream = await import(pathToFileURL(join(root,'scripts/cursor-subagent-mcp.mjs')).href);
-installUpstreamPolicy(upstream.Runtime, upstream.tools);
+installUpstreamPolicy(upstream.Runtime, upstream.tools, upstream.DomainError);
 await upstream.serve();

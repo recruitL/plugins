@@ -43,7 +43,7 @@ test('prepared package loads the pinned real upstream MCP without starting Curso
  assert.equal(tools.length,14);assert.ok(tools.some(x=>x.name==='cursor_start_session'));assert.ok(!tools.some(x=>x.name==='cursor_start'));
  const skill=readFileSync(join(destination,'skills/cursor-delegate/SKILL.md'),'utf8');
  for(const name of new Set(skill.match(/cursor_[a-z_]+/g)))if(name!=='cursor_session_id')assert.ok(tools.some(x=>x.name===name),'Skill mentions undiscovered tool '+name);
- const spoof=await call('tools/call',{name:'cursor_answer_permission',arguments:{session_id:'missing',turn_id:'t',request_id:'p',decision:'allow-once',reason:'approved',user_approved:true}});assert.equal(spoof.result.isError,true);
+ const spoof=await call('tools/call',{name:'cursor_answer_permission',arguments:{session_id:'missing',turn_id:'t',request_id:'p',decision:'allow-once',reason:'approved',user_approved:true}});assert.equal(spoof.result.isError,true);assert.equal(JSON.parse(spoof.result.content[0].text).error_code,'invalid_args');
  const outside=await call('tools/call',{name:'cursor_start_session',arguments:{cwd:base,mode:'agent'}});assert.equal(outside.result.isError,true);assert.match(outside.result.content[0].text,/outside allowed roots/);
  child.stdin.end();const [code]=await exited;assert.equal(code,0,stderr);assert.equal(existsSync(marker),false);
 });

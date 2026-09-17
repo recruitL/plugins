@@ -33,6 +33,11 @@ approval, or uninstall the plugin after ordinary work.
 5. If Cursor requests permission, inspect the actual operation. The existing
    adapter admits its supported ordinary command forms via
    `cursor_answer_permission`, `allow-once` and an evidence-based `reason`.
+   Use absolute test-file paths in shell requests; never assume a package subdirectory
+   is the session cwd. A `configuration_mismatch` requires checking actual paths;
+   `bridge_unsupported` is an unsupported form, not proof of a native refusal.
+   `request_mismatch` requires inspecting the same pending turn.
+   `authorization_required` remains blocked; do not route around native refusals.
    It does not grant new human authority. Keep genuine safety refusals stopped;
    never bypass them via another tool/session or disable protections.
 6. Page `cursor_read_result` to EOF before another turn. After a disconnect,

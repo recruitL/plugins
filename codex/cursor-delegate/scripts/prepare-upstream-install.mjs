@@ -28,8 +28,18 @@ export function prepare({workspace,upstream,agent,destination,node=process.execP
   if(manifest.name!=='cursor-delegate')throw Error('Unexpected plugin identifier');
   return {destination,workspace:root,upstream_revision:UPSTREAM_REVISION,installed:false,cursor_started:false};
 }
+const USAGE='Usage: node scripts/prepare-upstream-install.mjs ABS_WORKSPACE ABS_UPSTREAM ABS_CURSOR_CLI ABS_NEW_PARENT/cursor-delegate';
 if(process.argv[1]&&fileURLToPath(import.meta.url)===realpathSync(process.argv[1])) {
-  const [workspace,upstream,agent,destination,...extra]=process.argv.slice(2);
-  if(extra.length||!destination)throw Error('Usage: node scripts/prepare-upstream-install.mjs ABS_WORKSPACE ABS_UPSTREAM ABS_CURSOR_CLI ABS_NEW_PARENT/cursor-delegate');
-  console.log(JSON.stringify(prepare({workspace,upstream,agent,destination}),null,2));
+  const args=process.argv.slice(2);
+  try {
+    if(args.length===1&&(args[0]==='--help'||args[0]==='-h')){console.log(USAGE);process.exitCode=0;}
+    else {
+      const [workspace,upstream,agent,destination,...extra]=args;
+      if(extra.length||!destination)throw Error(USAGE);
+      console.log(JSON.stringify(prepare({workspace,upstream,agent,destination}),null,2));
+    }
+  } catch(error) {
+    console.error(error instanceof Error?error.message:String(error));
+    process.exitCode=1;
+  }
 }
