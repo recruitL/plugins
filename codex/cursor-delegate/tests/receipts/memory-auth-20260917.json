@@ -1,0 +1,31 @@
+{
+  "kind": "real Cursor bootstrap in explicit OS sandbox; NOT App integration",
+  "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/cb-77ayX6/workspace",
+  "network": "restricted",
+  "credential_access_expanded": false,
+  "model_prompt_sent": false,
+  "tls_verification": "enabled; Node bundled public CA roots",
+  "initialize": {
+    "ok": true,
+    "session_created": false
+  },
+  "authentication_mode": "native in-memory store; browser opening disabled",
+  "authenticate": {
+    "ok": false,
+    "error_code": -32602,
+    "unknown_method": false,
+    "browser_handoff_required": true
+  },
+  "session_new": {
+    "ok": false,
+    "error_code": -32000,
+    "category": "authentication_required"
+  },
+  "process_exit": {
+    "code": null,
+    "signal": "SIGKILL"
+  },
+  "stderr_bytes": 0,
+  "bootstrap_passed": false,
+  "cursor_version": "2026.05.28-a70ca7c"
+}

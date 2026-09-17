@@ -5,9 +5,10 @@ import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { isolatedCursorLaunch } from '../scripts/isolated-launch.mjs';
 
-const [parent, codexPath, agentPath] = process.argv.slice(2);
+const [parent, codexPath, agentPath, probeMode] = process.argv.slice(2);
 assert(parent && codexPath && agentPath,
   'Usage: node tests/cursor-bootstrap-native.mjs SHORT_TEST_PARENT CODEX_BINARY CURSOR_AGENT');
+assert(probeMode === undefined || probeMode === 'memory-auth', 'Unknown bootstrap probe mode');
 const base = mkdtempSync(join(realpathSync(parent), 'cb-'));
 const workspace = join(base, 'workspace'); mkdirSync(workspace);
 for (const name of ['.cursor', 'data', 'cache', 'tmp', 'codex']) mkdirSync(join(workspace, name));
@@ -15,6 +16,10 @@ writeFileSync(join(workspace, '.cursor', 'cli-config.json'), JSON.stringify({
   version: 1, editor: { vimMode: false }, permissions: { allow: [], deny: [] },
 }));
 const launch = isolatedCursorLaunch({ codexPath, workspace, agentPath });
+if (probeMode === 'memory-auth') {
+  launch.env.AGENT_CLI_CREDENTIAL_STORE = 'memory';
+  launch.env.NO_OPEN_BROWSER = '1';
+}
 const receipt = { kind: 'real Cursor bootstrap in explicit OS sandbox; NOT App integration',
   workspace, network: 'restricted', credential_access_expanded: false,
   model_prompt_sent: false, tls_verification: 'enabled; Node bundled public CA roots' };
@@ -71,6 +76,14 @@ try {
     clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
     clientInfo: { name: 'codex-isolated-bootstrap-probe', version: '0.1.0' } });
   receipt.initialize = summary(init);
+  if (!init.error && probeMode === 'memory-auth') {
+    receipt.authentication_mode = 'native in-memory store; browser opening disabled';
+    const auth = await rpc('authenticate', { methodId: 'cursor_login' });
+    // ACP puts details in error.data. Never persist login URLs, PKCE state or tokens.
+    receipt.authenticate = { ok: !auth.error, error_code: auth.error?.code,
+      unknown_method: /Unknown authentication method/.test(JSON.stringify(auth.error ?? {})),
+      browser_handoff_required: /Failed to open browser for login/.test(JSON.stringify(auth.error ?? {})) };
+  }
   if (!init.error) receipt.session_new = summary(await rpc('session/new', { cwd: workspace, mcpServers: [] }));
 } catch (error) { receipt.failure = error.message; }
 finally {

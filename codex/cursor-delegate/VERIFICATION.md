@@ -182,3 +182,16 @@ provider reason: Not in allowlist: head -50
 复现：`npm run test:cursor-bootstrap -- SHORT_ABSOLUTE_TEST_PARENT ABSOLUTE_CODEX_BINARY ABSOLUTE_AGENT_BINARY`。父目录必须是已授权、无敏感数据、位于共享临时目录外的短路径。驱动只在其下创建 cb-* 目录，不自动重试，不把认证失败记成通过，不写原始 stderr 或凭据。
 
 本轮实现变更后 19 项确定性测试通过。这些测试与上述真实 Cursor 启动预检分别报告；它们不证明认证/网络/完整代码闭环成功。认证接口依据 [Cursor 官方 ACP 文档](https://cursor.com/docs/cli/acp)，该文档提供已有登录、环境凭据和 cursor_login，但没有证明它们能在本隔离策略下安全工作。
+
+
+## 2026-09-17 原生网络代理与内存认证接口
+
+单独复用 Codex 0.153.4 的原生 managed network proxy，没有自建代理或修改用户网络配置。新增 opt-in `npm run test:network -- DEDICATED_TEST_PARENT CODEX_BINARY`，在专用目录中生成临时命名权限配置并由 `sandbox -P probe --include-managed-config` 启动。网络 feature 显式启用；上游代理链、SOCKS、UDP 和宽泛本地访问均关闭。仅允许 127.0.0.1，显式拒绝 localhost；测试结束清理启动进程及本机监听器。
+
+真实五项检查通过：代理环境注入；允许地址经代理得到哨兵；未允许回环地址被拒绝；指向同一哨兵的 localhost 被明确域名策略拒绝；绕过代理的直接 socket 连接得到 OS 拒绝。哨兵服务只收到一次请求。首次客户端重复应用代理设置导致 HTTP 400；改用显式 HTTP Agent 后请求按预期工作。另一轮显式拒绝断言误猜 reason=domain_denied，实际 reason=denied，核对真实协议后修正。最终回执 [managed-network-20260917.json](tests/receipts/managed-network-20260917.json)。仅测试回环 HTTP，不证明 Cursor 官方服务 HTTPS/HTTP2、DNS、认证或 App 接入；地址允许规则也不是端口级授权。
+
+配置依据 [官方配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)：只打开 permissions 网络开关不会自动启动代理，因此不能仅凭 domains 配置就宣称限制生效。本轮以实际代理拒绝和直接 socket 拒绝为准。默认 Bridge、已安装 App 服务及外层启动原型的全拒绝网络策略没有因此改变。
+
+另行核验本机 Cursor 原生 AGENT_CLI_CREDENTIAL_STORE=memory 分支，并使用既有严格外层沙箱、NO_OPEN_BROWSER=1，实际调用 initialize → authenticate(cursor_login) → session/new。初始化成功；authenticate 返回 -32602，error.data 明确要求浏览器交接（不是方法不支持）；session/new 仍返回认证必需。没有开放浏览器、联网、读取现有钥匙串、复制 token、写认证文件或发送模型任务。测试退出 1，回执 [memory-auth-20260917.json](tests/receipts/memory-auth-20260917.json)。可用 `test:cursor-bootstrap` 的末尾参数 `memory-auth` 复现此接口检查；原始登录 URL/PKCE 值不会写入回执。
+
+该内存存储选项来自已安装版本实际源码，不能视作跨版本稳定公开 API。ACP 的 NO_OPEN_BROWSER 路径在返回错误后不会继续轮询登录，因此单独让用户点错误中的 URL 不能完成此会话认证。可信的浏览器交接、实际登录、凭据不进入执行命令环境、服务联网及完整代码闭环仍待实现/验证；没有以人工点击普通表单代替它们。

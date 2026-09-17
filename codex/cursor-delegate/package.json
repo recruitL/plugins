@@ -10,7 +10,8 @@
     "test": "node --test tests/*.test.mjs",
     "start": "node scripts/server.mjs",
     "test:sandbox": "node tests/sandbox-native.mjs",
-    "test:cursor-bootstrap": "node tests/cursor-bootstrap-native.mjs"
+    "test:cursor-bootstrap": "node tests/cursor-bootstrap-native.mjs",
+    "test:network": "node tests/network-native.mjs"
   },
   "license": "MIT"
 }
