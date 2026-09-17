@@ -2,11 +2,13 @@
 
 本插件直接加载 [arikon/agents-cursor-subagent-plugin](https://github.com/arikon/agents-cursor-subagent-plugin) 固定版本 ce257353ecae9061fe45d084cb80e2d0c46207cd。上游负责 ACP、会话、问答、计划、等待、结果、取消与恢复；这里不重写这些能力。上游没有许可证，因此代码留在用户单独检出目录，不复制到此仓库。
 
-运行时只增加两个小文件：upstream-entry.mjs 校验并加载上游，upstream-policy.mjs 更新工具说明并区分实际待决操作：普通范围内命令需 Codex 提供审阅理由，未知操作和安全升级不能放行。普通问题和计划仍使用原工具，由 Codex 决策，不要求用户审批项目流程。上游原 Skill 的普通问题/计划人工审批规则不安装。
+运行时保留上游全部通信和会话实现。入口校验并加载固定上游；策略适配器接收完整 read/edit 请求及既有 execute 请求。file-review 负责文件范围与前后文本检查，review-gate 与 cursor-review-hook 将实际 Cursor 文件操作接入原待审阅队列，confined-command 保留命令分类。普通问题和计划由 Codex 决策，上游原 Skill 的普通项目人工审批规则不安装。
+
+当前 App 安装版已实际验证两文件 Python 维护及同会话返修，读写审阅队列触发 18 次，独立测试最终 26/26，额外检查 2/2。详细分层结论见 [VERIFICATION.md](VERIFICATION.md)。
 
 用户后续要求日常使用：Codex 派工和验证，Cursor 修改代码与返修。已按单个授权项目恢复安装，保留既有目录与权限限制；不再自动卸载或追加验证活动。下文的卸载记录属于此前单次测试收尾。
 
-## 已有验证证据
+## 历史验证证据（不计入当前版本验收）
 
 - 上游会话生命周期离线测试：54/54 通过。
 - 已安装 2026.05.28 CLI 缺少 --auto-review，不能按当前上游参数启动。
@@ -23,7 +25,7 @@
 
 ## 启用前必须明确的权限差异
 
-本候选沿用上游 --auto-review --sandbox enabled。Cursor 的 Smart Auto 分类器可自动运行它认为安全的操作；到达 MCP 的普通 pwd/ls、指定 Node 测试由 Codex 审阅；执行前依据实际 pending 请求、实际 cwd 和路径重新检查。未知/安全升级请求不能由模型放行。它不具备可信人工授权通道。
+本候选沿用上游 --auto-review --sandbox enabled。Cursor 的 Smart Auto 分类器可自动运行它认为安全的操作；Read/Write hook、原生 read/edit 权限和受支持的普通命令由 Codex 审阅；执行前依据实际 pending 请求、实际 cwd 和路径重新检查。未知/安全升级请求不能由模型放行。它不具备可信人工授权通道。
 
 这是本机原生 Cursor 进程，没有旧候选额外的 Codex OS 沙箱和 api2 单域名代理。根目录检查不是 OS 隔离，--sandbox enabled 也尚未证明 ACP 的命令隔离。限制 MCP 权限答复不能证明所有 Cursor 内部工具都被覆盖。早期单次测试已经结束；用户随后明确授权按项目日常委派。现保留安装、目录限制和原生权限，不绕过此前拒绝。
 

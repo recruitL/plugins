@@ -17,7 +17,7 @@ export function prepare({workspace,upstream,agent,destination,node=process.execP
   const source=fileURLToPath(new URL('../',import.meta.url));
   mkdirSync(join(destination,'scripts'),{recursive:true,mode:0o700});
   for(const name of ['config','data','tmp'])mkdirSync(join(root,name),{recursive:true,mode:0o700});
-  for(const name of ['upstream-entry.mjs','upstream-policy.mjs','confined-command.mjs'])cpSync(join(source,'scripts',name),join(destination,'scripts',name));
+  for(const name of ['upstream-entry.mjs','upstream-policy.mjs','confined-command.mjs','file-review.mjs','review-gate.mjs','cursor-review-hook.mjs'])cpSync(join(source,'scripts',name),join(destination,'scripts',name));
   for(const name of ['.codex-plugin','skills','README.md','UPSTREAM-REUSE.md','VERIFICATION.md'])cpSync(join(source,name),join(destination,name),{recursive:true});
   const config={mcpServers:{'cursor-delegate':{command:realpathSync(node),cwd:'.',args:['scripts/upstream-entry.mjs'],env:{
     CURSOR_SUBAGENT_UPSTREAM:checkout,CURSOR_SUBAGENT_ALLOWED_ROOTS:JSON.stringify([root]),CURSOR_AGENT_COMMAND:binary,

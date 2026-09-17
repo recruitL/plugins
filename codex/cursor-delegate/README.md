@@ -20,7 +20,7 @@ node scripts/prepare-upstream-install.mjs \
   /absolute/new-staging-directory/cursor-delegate
 ```
 
-准备器只生成新插件目录及测试项目内的 config/data/tmp 运行目录，不覆盖已有插件目录，不启动 Cursor，不修改宿主配置。输出包含清单、Skill、三份运行脚本和专用 `.mcp.json`；引用的上游及 CLI 必须位于持久位置。原来的 `install-local.mjs` 已停用，避免误装旧服务。
+准备器只生成新插件目录及测试项目内的 config/data/tmp 运行目录，不覆盖已有插件目录，不启动 Cursor，不修改宿主配置。输出包含清单、Skill、六份运行脚本和专用 `.mcp.json`；引用的上游及 CLI 必须位于持久位置。原来的 `install-local.mjs` 已停用，避免误装旧服务。
 
 ## 本机启用
 
@@ -38,6 +38,8 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 日常派工与故障
 
+普通文件维护通过插件附带的 Cursor `preToolUse` hook 暂停到现有 MCP 待审阅队列，Codex 查看路径及修改前后内容后逐次答复；同样支持原生 ACP `read/edit` 权限消息。hook 使用每个桥接进程自己的本地 socket。当前 Cursor 2026.09.15 ACP 从 `CURSOR_DATA_DIR/projects/<项目键>/.cursor/hooks.json` 加载 hooks；桥接仅合并这一项目的审阅项，保留已有 hooks 和备份，会话或服务关闭时恢复，不改用户全局 hooks。`--plugin-dir` 在该 ACP 版本不加载 hooks，因此不再用它承载审阅。断连/超时拒绝，不覆盖后续原生权限拒绝。大于 60 KB 的文件尚不支持内联审阅；人工安全升级仍是未完成功能。
+
 派工运行时会带上实际会话目录；执行测试使用项目内文件的绝对路径，避免把插件子目录误当仓库根目录。权限答复中的 `configuration_mismatch` 表示路径/配置不匹配，`bridge_unsupported` 表示桥接尚不支持该操作形式，`request_mismatch` 表示待决请求已变化；核对同一会话与实际文件后再安排正确操作。`authorization_required` 表示已识别的越界路径，保持阻塞。原生拒绝原样返回，不自动重试。没有命令会因错误分类而自动获准。
 
 在已有授权覆盖且验证可用的环境中，可以说：“让 Cursor 完成这个修复，你审阅方案、检查真实改动并安排返修。”Codex 使用 `cursor_start_session → cursor_send_prompt → cursor_wait/cursor_session_status → cursor_read_result`；普通问答与计划由 Codex 回答，不作为用户审批关卡。完整读取结果后检查实际 cwd、文件和测试，再在同一会话返修。Cursor 工作期间不要同时修改相同文件。
@@ -48,7 +50,7 @@ node scripts/prepare-upstream-install.mjs \
 
 ## 权限限制与回退
 
-原生 Cursor 以本机账户权限运行；根目录检查不是 OS 沙箱。上游自动审阅可能在请求到达 MCP 前执行操作，`--sandbox enabled` 尚未证明 ACP 全面隔离。适配器只审阅到达它的指定普通命令，不能宣称覆盖所有工具。
+原生 Cursor 以本机账户权限运行；根目录检查不是 OS 沙箱。上游自动审阅可能在请求到达 MCP 前执行操作，`--sandbox enabled` 尚未证明 ACP 全面隔离。适配器审阅 Read/Write 文件操作、完整原生 read/edit 权限消息及已支持的普通命令，不能宣称覆盖所有工具。
 
 未知操作和安全升级保持阻塞，没有可信人工升级通道。模型声称“用户已批准”不授予权限。命令名称受限也不保证测试代码没有副作用，Codex 必须检查实际代码与现有授权。
 

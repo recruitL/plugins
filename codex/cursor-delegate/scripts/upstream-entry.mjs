@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Load the user's separate upstream checkout; do not redistribute unlicensed code.
 import {execFileSync} from 'node:child_process';
-import {realpathSync} from 'node:fs';
+import {realpathSync,readFileSync} from 'node:fs';
 import {isAbsolute,join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {installUpstreamPolicy} from './upstream-policy.mjs';
@@ -16,5 +16,5 @@ if (git('rev-parse','HEAD') !== revision || git('status','--porcelain','--untrac
 if (!process.env.CURSOR_SUBAGENT_ALLOWED_ROOTS) throw new Error('Explicit authorized workspace roots are required');
 if (!isAbsolute(process.env.CURSOR_AGENT_COMMAND ?? '')) throw new Error('An absolute verified Cursor CLI path is required');
 const upstream = await import(pathToFileURL(join(root,'scripts/cursor-subagent-mcp.mjs')).href);
-installUpstreamPolicy(upstream.Runtime, upstream.tools, upstream.DomainError);
+installUpstreamPolicy(upstream.Runtime, upstream.tools, upstream.DomainError, {version:JSON.parse(readFileSync(new URL('../.codex-plugin/plugin.json',import.meta.url))).version,entry:new URL(import.meta.url).pathname,cli:process.env.CURSOR_AGENT_COMMAND,pid:process.pid});
 await upstream.serve();

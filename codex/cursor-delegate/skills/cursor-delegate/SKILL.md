@@ -31,8 +31,14 @@ approval, or uninstall the plugin after ordinary work.
    concrete failures/findings back to the SAME Cursor session for repair, then
    verify again. Do not lower acceptance criteria or change fixed physics.
 5. If Cursor requests permission, inspect the actual operation. The existing
-   adapter admits its supported ordinary command forms via
+   adapter queues ordinary reads/edits through a blocking Cursor preToolUse hook.
+   On Cursor 2026.09.15 ACP this is merged into its data-project hook config
+   (not --plugin-dir). Existing hooks are preserved and restored on session close.
+   Inspect `context.operation` paths and before/after text, then answer via
    `cursor_answer_permission`, `allow-once` and an evidence-based `reason`.
+   Native ACP read/edit permissions use the same review path. A hook approval
+   never overrides a later native refusal. Large/unknown file operations and
+   permission configuration changes must not be silently approved.
    Use absolute test-file paths in shell requests; never assume a package subdirectory
    is the session cwd. A `configuration_mismatch` requires checking actual paths;
    `bridge_unsupported` is an unsupported form, not proof of a native refusal.
