@@ -1,5 +1,6 @@
 import { realpathSync } from 'node:fs';
-import { isAbsolute, relative, sep } from 'node:path';
+import { dirname, join, isAbsolute, relative, sep } from 'node:path';
+import { homedir } from 'node:os';
 import { pathToFileURL } from 'node:url';
 
 // Explicit outer confinement prototype. Not yet wired into Cursor sessions.
@@ -62,4 +63,33 @@ export function isolatedLaunch({ codexPath, workspace, runtimePaths, command }) 
     cwd,
     state,
   };
+}
+
+// Preflight only: credentials and service networking are still unavailable.
+// Launch the unmodified official distribution directly, using Node's bundled
+// public CA roots. The vendor shell wrapper forces --use-system-ca, whose macOS
+// keychain lookup crashes under this profile. TLS verification stays enabled.
+export function isolatedCursorLaunch({ codexPath, workspace, agentPath }) {
+  if (!isAbsolute(agentPath)) throw new Error('An absolute Cursor agent path is required');
+  const cwd = realpathSync(workspace);
+  const data = join(cwd, 'data');
+  // This Cursor build falls back to /tmp/.cursor when its IPC base exceeds 84
+  // characters. Reject before launch instead of granting shared temporary access.
+  if (data.length > 84) throw new Error('Cursor data path exceeds its 84-character IPC base limit');
+  const distribution = dirname(realpathSync(agentPath));
+  const node = realpathSync(join(distribution, 'node'));
+  const entry = realpathSync(join(distribution, 'index.js'));
+  if (!within(distribution, node) || !within(distribution, entry)) {
+    throw new Error('Cursor bundled runtime must remain inside its distribution');
+  }
+  const launch = isolatedLaunch({ codexPath, workspace: cwd,
+    runtimePaths: [distribution, '/System/Library/OpenSSL'],
+    command: [node, '--use-bundled-ca', entry, '--sandbox', 'enabled', 'acp'],
+  });
+  return { ...launch, env: {
+    HOME: homedir(), PATH: '/usr/bin:/bin', LANG: 'en_US.UTF-8',
+    CURSOR_INVOKED_AS: 'agent', CURSOR_CONFIG_DIR: join(cwd, '.cursor'),
+    CURSOR_DATA_DIR: data, NODE_COMPILE_CACHE: join(cwd, 'cache'),
+    TMPDIR: join(cwd, 'tmp'), CODEX_HOME: join(cwd, 'codex'),
+  } };
 }

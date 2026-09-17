@@ -1,0 +1,30 @@
+{
+  "kind": "real Cursor bootstrap in explicit OS sandbox; NOT App integration",
+  "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/cb-nu5nv8/workspace",
+  "network": "restricted",
+  "credential_access_expanded": false,
+  "model_prompt_sent": false,
+  "tls_verification": "enabled; Node bundled public CA roots",
+  "initialize": {
+    "ok": true,
+    "session_created": false
+  },
+  "session_new": {
+    "ok": false,
+    "error_code": -32000,
+    "category": "authentication_required"
+  },
+  "process_exit": {
+    "code": null,
+    "signal": "SIGKILL"
+  },
+  "stderr_bytes": 0,
+  "bootstrap_passed": false,
+  "cursor_version": "2026.05.28-a70ca7c",
+  "controls": {
+    "long_data_path": "Cursor fell back to /tmp/.cursor; shared temporary mkdir denied",
+    "plain_bundled_node": "exit 0 with or without --use-system-ca",
+    "system_ca_enumeration": "exit 139 and SecItemCopyMatching failed -50 with or without --use-system-ca",
+    "bundled_ca_acp": "initialize succeeded; session/new requires authentication"
+  }
+}

@@ -166,3 +166,19 @@ provider reason: Not in allowlist: head -50
 尚未验证/实现：Cursor 在此外层沙箱内的认证、官方服务联网、会话存储、App MCP 内启动、普通权限请求的范围判断和完整代码返修闭环。网络目前全部拒绝，因此不能直接用于真实 Cursor 模型任务。没有修改已安装服务或允许列表，也没有恢复此前拒绝的会话。
 
 启动器接口和平台默认行为核对来源：[Codex 启动实现](https://github.com/openai/codex/blob/main/codex-rs/cli/src/debug_sandbox.rs)、[macOS 策略实现](https://github.com/openai/codex/blob/main/codex-rs/sandboxing/src/seatbelt.rs)。以实际捆绑版本和探针结果为准，源码 main 可能继续变化。
+
+
+## 2026-09-17 外层沙箱中的真实 Cursor 启动：初始化通过，认证阻塞
+
+新增 `isolatedCursorLaunch` 和 opt-in `test:cursor-bootstrap`，只做 initialize/session-new，不调用 authenticate、不发送 prompt、不读取复制凭据、不开放网络。默认 Bridge 和已安装 App 服务仍未切换到该原型。
+
+本轮按失败证据依次定位两个启动问题：
+
+1. 本机 Cursor 的 IPC 路径计算在 CURSOR_DATA_DIR 超过 84 字符时回退 /tmp/.cursor，真实 mkdir 被现有共享临时目录拒绝规则拦截。启动器现在提前拒绝过长数据路径；专用测试路径缩短后不再出现该错误，没有开放 /tmp。
+2. 原官方 shell 启动器自动添加 --use-system-ca。在本次严格沙箱内，单独用 Cursor 自带 Node 读取系统公共证书即可复现 SecItemCopyMatching failed -50、退出 139；只加载 Node/TLS 模块则退出 0。因此不能把这一错误直接归咎于登录凭据。原型使用未修改的官方 Node 和 index.js，以本机 --help 支持的 --use-bundled-ca 启动，继续验证 TLS；没有使用 --insecure 或关闭证书检查。此模式不含系统添加的企业 CA，代理兼容性仍未验证。
+
+仓库中的真实预检结果：ACP initialize 成功；session/new 返回 -32000、authentication_required；未创建可执行会话、未发送模型任务，驱动清理进程后退出 1。回执 [cursor-isolated-bootstrap-20260917.json](tests/receipts/cursor-isolated-bootstrap-20260917.json) 的 bootstrap_passed=false。现有本机登录不等于此外层沙箱能够安全使用该认证；没有为绕过此限制开放钥匙串或复制 token。认证、官方服务联网、App 中使用此外层沙箱、执行测试与同会话返修仍未通过。
+
+复现：`npm run test:cursor-bootstrap -- SHORT_ABSOLUTE_TEST_PARENT ABSOLUTE_CODEX_BINARY ABSOLUTE_AGENT_BINARY`。父目录必须是已授权、无敏感数据、位于共享临时目录外的短路径。驱动只在其下创建 cb-* 目录，不自动重试，不把认证失败记成通过，不写原始 stderr 或凭据。
+
+本轮实现变更后 19 项确定性测试通过。这些测试与上述真实 Cursor 启动预检分别报告；它们不证明认证/网络/完整代码闭环成功。认证接口依据 [Cursor 官方 ACP 文档](https://cursor.com/docs/cli/acp)，该文档提供已有登录、环境凭据和 cursor_login，但没有证明它们能在本隔离策略下安全工作。
