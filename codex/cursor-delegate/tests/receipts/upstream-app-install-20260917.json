@@ -1,0 +1,12 @@
+{
+  "kind": "user-level Codex CLI installation; App tool reload not yet verified",
+  "version": "0.1.0+codex.20260917111258",
+  "cache": "/Users/yl/.codex/plugins/cache/personal/cursor-delegate/0.1.0+codex.20260917111258",
+  "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/app-upstream-test",
+  "backup": "/Users/yl/Desktop/codex-cursor-plugin-work/backups/before-upstream-app-20260917T111257Z",
+  "cursor_started": false,
+  "post_test_action": "disable native candidate",
+  "app_current_task_tools": "old tool set; cursor_start_session absent",
+  "old_session_closed": true,
+  "app_new_entry_invocation": "not verified; new App task required"
+}

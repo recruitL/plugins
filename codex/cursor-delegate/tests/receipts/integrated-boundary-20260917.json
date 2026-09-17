@@ -1,0 +1,27 @@
+{
+  "kind": "real OS boundaries with integrated IsolatedRuntime and native API proxy; no Cursor prompt or credentials",
+  "fixture": "/Users/yl/Desktop/codex-cursor-plugin-work/outer-native-1EgLuD",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "checks": {
+    "inside_write": true,
+    "outside_read_denied": true,
+    "outside_write_denied": true,
+    "symlink_read_denied": true,
+    "symlink_write_denied": true,
+    "protected_config_write_denied": true,
+    "shared_tmp_read_denied": true,
+    "shared_tmp_write_denied": true,
+    "child_write_denied": true,
+    "network_denied": true
+  },
+  "networkConnections": 0,
+  "stderr": "",
+  "outsideEntries": [
+    "canary.txt"
+  ],
+  "sharedTmpEntries": [
+    "canary.txt"
+  ]
+}

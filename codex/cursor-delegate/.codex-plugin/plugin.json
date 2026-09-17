@@ -1,0 +1,24 @@
+{
+  "name": "cursor-delegate",
+  "version": "0.1.0",
+  "description": "Codex delegates code changes to Cursor, then reviews and verifies the results.",
+  "author": {
+    "name": "recruitL"
+  },
+  "license": "MIT",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Cursor Delegate",
+    "shortDescription": "Codex 总控，Cursor 实现与返修",
+    "longDescription": "Codex 负责派工、技术判断、检查和验证；Cursor 在配置的项目目录中负责代码实现、维护及同会话返修。",
+    "developerName": "recruitL",
+    "category": "Productivity",
+    "capabilities": [
+      "mcp"
+    ],
+    "defaultPrompt": [
+      "委派 Cursor 完成当前项目中的代码任务，并独立验收。"
+    ]
+  }
+}

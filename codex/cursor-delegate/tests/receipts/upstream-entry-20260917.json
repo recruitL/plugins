@@ -1,0 +1,11 @@
+{
+  "kind": "actual candidate MCP entry; upstream implementation; no Cursor spawned",
+  "exit_code": 0,
+  "initialized": true,
+  "tool_count": 14,
+  "permission_enum": [
+    "reject-once"
+  ],
+  "forged_approval_rejected": true,
+  "stderr_present": false
+}

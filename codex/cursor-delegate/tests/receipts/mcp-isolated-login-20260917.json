@@ -1,0 +1,21 @@
+{
+  "kind": "real MCP stdio + real isolated Cursor; NOT App UI test",
+  "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/app-XKO4R9",
+  "network": "native proxy: api2.cursor.sh only",
+  "browser_opened": false,
+  "login_completed": false,
+  "model_prompt_sent": false,
+  "start": "starting",
+  "login_wait": {
+    "state": "awaiting_login",
+    "validated_url_present": true,
+    "cwd_matches": true
+  },
+  "still_waiting_after_native_poll": true,
+  "early_prompt_rejected": true,
+  "cancelled": true,
+  "process_stopped": true,
+  "recovery_rejected": true,
+  "stderr_bytes": 0,
+  "passed": true
+}

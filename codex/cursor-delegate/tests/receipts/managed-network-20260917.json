@@ -1,0 +1,38 @@
+{
+  "kind": "native Codex managed network proxy; localhost canary only; no Cursor or credentials",
+  "base": "/Users/yl/Desktop/codex-cursor-plugin-work/net-2hBWvP",
+  "code": 0,
+  "signal": null,
+  "timedOut": false,
+  "requests": 1,
+  "observed": {
+    "checks": {
+      "proxy_environment_present": true,
+      "allowed_origin": true,
+      "unlisted_origin_denied": true,
+      "explicit_domain_denied": true,
+      "direct_socket_denied": true
+    },
+    "allowed": {
+      "status": 200,
+      "canary": true,
+      "diagnostic": null
+    },
+    "denied": {
+      "status": 403,
+      "canary": false,
+      "diagnostic": "{\"status\":\"blocked\",\"host\":\"127.0.0.2\",\"reason\":\"not_allowed_local\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":49382,\"message\":\"Sandbox policy blocks local/private network addresses.\"}"
+    },
+    "explicit": {
+      "status": 403,
+      "canary": false,
+      "diagnostic": "{\"status\":\"blocked\",\"host\":\"localhost\",\"reason\":\"denied\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":49382,\"message\":\"Domain denied by the sandbox policy.\"}"
+    }
+  },
+  "stderr": "(node:16642) [UNDICI-EHPA] Warning: EnvHttpProxyAgent is experimental, expect them to change at any time.\n(Use `node --trace-warnings ...` to show where the warning was created)\n",
+  "codex_version": "0.153.4",
+  "limitations": [
+    "Loopback HTTP only; Cursor HTTPS/HTTP2 service traffic and App startup are unverified",
+    "Local-IP allow rules cover the address, not a single destination port"
+  ]
+}

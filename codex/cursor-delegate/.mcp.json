@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cursor-delegate": {
+      "command": "node",
+      "cwd": ".",
+      "args": [
+        "scripts/upstream-entry.mjs"
+      ]
+    }
+  }
+}

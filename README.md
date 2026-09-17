@@ -13,6 +13,8 @@ A public collection of small, local-first plugins for research and knowledge wor
 plugins/
 ├── obsidian/
 │   └── research-dashboard/
+├── codex/
+│   └── cursor-delegate/
 ├── zotero/
 └── edge/
 ```
@@ -22,6 +24,7 @@ plugins/
 | 平台 | 插件 | 状态 | 说明 |
 | --- | --- | --- | --- |
 | Obsidian | [Research Dashboard](obsidian/research-dashboard/) | 可用 | 本地优先的科研首页，提供知识库搜索、Daily 摘要、项目任务、月历和 52 周记录活跃度。 |
+| Codex | [Cursor Delegate](codex/cursor-delegate/) | 测试版，真实闭环未验收 | Codex 总控与 Cursor ACP 委派；权限请求拒绝执行。 |
 | Zotero | — | 预留 | 后续 Zotero 插件放在这里。 |
 | Edge | — | 预留 | 后续 Microsoft Edge 扩展放在这里。 |
 

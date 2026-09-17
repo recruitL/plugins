@@ -1,0 +1,16 @@
+{
+  "kind": "actual Codex App MCP, actual isolated Cursor",
+  "workspace": "/Users/yl/Desktop/codex-cursor-plugin-work/app-live-qfwv04ku/r1",
+  "session_id": "c35a1375-227e-48ee-9464-6ebb7ed2bb9b",
+  "app_reload_verified": true,
+  "login_url_handoff_verified": true,
+  "user_reported_browser_login": true,
+  "terminal_state": "failed",
+  "error": "Internal error",
+  "cursor_session_id": null,
+  "pid_after_failure": null,
+  "model_prompt_sent": false,
+  "authentication_completed": "unverified",
+  "root_cause": "unknown: previous bridge discarded ACP error.data",
+  "coding_acceptance": false
+}

@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: add positive numbers
+ok 1 - add positive numbers
+  ---
+  duration_ms: 0.743375
+  type: 'test'
+  ...
+# Subtest: add negative numbers
+ok 2 - add negative numbers
+  ---
+  duration_ms: 0.096875
+  type: 'test'
+  ...
+# Subtest: add with zero
+ok 3 - add with zero
+  ---
+  duration_ms: 0.036
+  type: 'test'
+  ...
+# Subtest: add decimal numbers
+ok 4 - add decimal numbers
+  ---
+  duration_ms: 0.03275
+  type: 'test'
+  ...
+# Subtest: rejects string as first operand
+ok 5 - rejects string as first operand
+  ---
+  duration_ms: 0.13425
+  type: 'test'
+  ...
+# Subtest: rejects string as second operand
+ok 6 - rejects string as second operand
+  ---
+  duration_ms: 0.038708
+  type: 'test'
+  ...
+# Subtest: rejects null as first operand
+ok 7 - rejects null as first operand
+  ---
+  duration_ms: 0.026792
+  type: 'test'
+  ...
+# Subtest: rejects null as second operand
+ok 8 - rejects null as second operand
+  ---
+  duration_ms: 0.029292
+  type: 'test'
+  ...
+# Subtest: rejects undefined as first operand
+ok 9 - rejects undefined as first operand
+  ---
+  duration_ms: 0.2
+  type: 'test'
+  ...
+# Subtest: rejects undefined as second operand
+ok 10 - rejects undefined as second operand
+  ---
+  duration_ms: 0.250708
+  type: 'test'
+  ...
+# Subtest: rejects boolean as first operand
+ok 11 - rejects boolean as first operand
+  ---
+  duration_ms: 0.076
+  type: 'test'
+  ...
+# Subtest: rejects boolean as second operand
+ok 12 - rejects boolean as second operand
+  ---
+  duration_ms: 0.026167
+  type: 'test'
+  ...
+# Subtest: rejects object as first operand
+ok 13 - rejects object as first operand
+  ---
+  duration_ms: 0.021458
+  type: 'test'
+  ...
+# Subtest: rejects object as second operand
+ok 14 - rejects object as second operand
+  ---
+  duration_ms: 0.021666
+  type: 'test'
+  ...
+# Subtest: rejects array as first operand
+ok 15 - rejects array as first operand
+  ---
+  duration_ms: 0.02
+  type: 'test'
+  ...
+# Subtest: rejects array as second operand
+ok 16 - rejects array as second operand
+  ---
+  duration_ms: 0.022292
+  type: 'test'
+  ...
+# Subtest: rejects NaN as first operand
+ok 17 - rejects NaN as first operand
+  ---
+  duration_ms: 0.018792
+  type: 'test'
+  ...
+# Subtest: rejects NaN as second operand
+ok 18 - rejects NaN as second operand
+  ---
+  duration_ms: 0.019208
+  type: 'test'
+  ...
+# Subtest: rejects Infinity as first operand
+ok 19 - rejects Infinity as first operand
+  ---
+  duration_ms: 0.084208
+  type: 'test'
+  ...
+# Subtest: rejects Infinity as second operand
+ok 20 - rejects Infinity as second operand
+  ---
+  duration_ms: 0.022667
+  type: 'test'
+  ...
+# Subtest: rejects -Infinity as first operand
+ok 21 - rejects -Infinity as first operand
+  ---
+  duration_ms: 0.021875
+  type: 'test'
+  ...
+# Subtest: rejects -Infinity as second operand
+ok 22 - rejects -Infinity as second operand
+  ---
+  duration_ms: 0.022125
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 42.832292

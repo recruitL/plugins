@@ -1,0 +1,9 @@
+{
+  "kind": "actual Codex CLI installation in isolated HOME; NOT App",
+  "temporary_home": "/var/folders/_8/bv4nbfb13qqfmlkbg023v9bm0000gn/T/cursor-upstream-install-2i79f7xj/home",
+  "cache": "/var/folders/_8/bv4nbfb13qqfmlkbg023v9bm0000gn/T/cursor-upstream-install-2i79f7xj/home/.codex/plugins/cache/personal/cursor-delegate/0.1.0+codex.20260917102341",
+  "mcp_entry": "scripts/upstream-entry.mjs",
+  "cursor_started": false,
+  "installed": true,
+  "host_user_configuration_changed": false
+}

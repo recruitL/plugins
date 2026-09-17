@@ -1,0 +1,80 @@
+[
+  {
+    "kind": "native Codex managed network proxy; localhost canary only; no Cursor or credentials",
+    "base": "/Users/yl/Desktop/codex-cursor-plugin-work/net-V11cz1",
+    "mode": "limited",
+    "code": 0,
+    "signal": null,
+    "timedOut": false,
+    "requests": 1,
+    "observed": {
+      "checks": {
+        "proxy_environment_present": true,
+        "allowed_origin": true,
+        "method_policy_correct": true,
+        "unlisted_origin_denied": true,
+        "explicit_domain_denied": true,
+        "direct_socket_denied": true
+      },
+      "allowed": {
+        "status": 200,
+        "canary": true,
+        "diagnostic": null
+      },
+      "post": {
+        "status": 403,
+        "canary": false,
+        "diagnostic": "{\"status\":\"blocked\",\"host\":\"127.0.0.1\",\"reason\":\"method_not_allowed\",\"decision\":\"deny\",\"source\":\"mode_guard\",\"protocol\":\"http\",\"port\":58119,\"message\":\"Method not allowed in limited mode.\"}"
+      },
+      "denied": {
+        "status": 403,
+        "canary": false,
+        "diagnostic": "{\"status\":\"blocked\",\"host\":\"127.0.0.2\",\"reason\":\"not_allowed_local\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":58119,\"message\":\"Sandbox policy blocks local/private network addresses.\"}"
+      },
+      "explicit": {
+        "status": 403,
+        "canary": false,
+        "diagnostic": "{\"status\":\"blocked\",\"host\":\"localhost\",\"reason\":\"denied\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":58119,\"message\":\"Domain denied by the sandbox policy.\"}"
+      }
+    }
+  },
+  {
+    "kind": "native Codex managed network proxy; localhost canary only; no Cursor or credentials",
+    "base": "/Users/yl/Desktop/codex-cursor-plugin-work/net-E3mUGH",
+    "mode": "full",
+    "code": 0,
+    "signal": null,
+    "timedOut": false,
+    "requests": 2,
+    "observed": {
+      "checks": {
+        "proxy_environment_present": true,
+        "allowed_origin": true,
+        "method_policy_correct": true,
+        "unlisted_origin_denied": true,
+        "explicit_domain_denied": true,
+        "direct_socket_denied": true
+      },
+      "allowed": {
+        "status": 200,
+        "canary": true,
+        "diagnostic": null
+      },
+      "post": {
+        "status": 200,
+        "canary": true,
+        "diagnostic": null
+      },
+      "denied": {
+        "status": 403,
+        "canary": false,
+        "diagnostic": "{\"status\":\"blocked\",\"host\":\"127.0.0.2\",\"reason\":\"not_allowed_local\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":58143,\"message\":\"Sandbox policy blocks local/private network addresses.\"}"
+      },
+      "explicit": {
+        "status": 403,
+        "canary": false,
+        "diagnostic": "{\"status\":\"blocked\",\"host\":\"localhost\",\"reason\":\"denied\",\"decision\":\"deny\",\"source\":\"baseline_policy\",\"protocol\":\"http\",\"port\":58143,\"message\":\"Domain denied by the sandbox policy.\"}"
+      }
+    }
+  }
+]

@@ -1,0 +1,17 @@
+{
+  "kind": "unmodified upstream Runtime; actual Cursor; no prompt",
+  "cwd": "/Users/yl/Desktop/codex-cursor-plugin-work/u-vgLbW1",
+  "state": "live",
+  "failure_kind": null,
+  "diagnostic": [],
+  "session_id": "whSB9kFtUHRziK4RqIJzvA",
+  "cursor_session_id": "1841a631-82ef-42ef-b215-a4a868b3d3a3",
+  "interactive_login_requested": false,
+  "model_prompt_sent": false,
+  "cursor_version": "2026.09.15-d2fe57e",
+  "upstream_revision": "ce257353ecae9061fe45d084cb80e2d0c46207cd",
+  "native_credential_reused": true,
+  "session_closed_after_probe": true,
+  "app_validation": false,
+  "permission_boundary_validated": false
+}
