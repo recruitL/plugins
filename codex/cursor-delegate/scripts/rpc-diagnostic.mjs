@@ -17,6 +17,9 @@ export function rpcDiagnostic(error, method) {
   const detail = parts.join(' ');
   const signals = codes.filter(code => new RegExp('\\b'+code+'\\b').test(detail));
   for (const [signal, pattern] of [
+    ['http_403', /\bHTTP 403\b/i],
+    ['permission_denied', /\[permission_denied\]/i],
+    ['method_policy_denied', /method not allowed in limited mode|blocked-by-method-policy/i],
     ['authentication_required', /authentication required|unauthenticated/i],
     ['login_expired', /login failed or timed out|login.*expired/i],
     ['network_denied', /proxy.*denied|network.*denied|blocked by.*proxy/i],

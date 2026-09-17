@@ -17,9 +17,10 @@ function createOnce(path,content) {
   writeFileSync(path,content,{flag:'wx',mode:0o600});
 }
 export class IsolatedRuntime {
-  constructor({codexPath,networkEnabled=false}={}) {
+  constructor({codexPath,networkEnabled=false,networkMode="limited"}={}) {
     if(!isAbsolute(codexPath??''))throw new Error('Absolute Codex sandbox executable required');
-    this.codexPath=realpathSync(codexPath);this.networkEnabled=networkEnabled;
+    if (!["limited","full"].includes(networkMode)) throw new Error("Invalid API HTTP mode");
+    this.codexPath=realpathSync(codexPath);this.networkEnabled=networkEnabled;this.networkMode=networkMode;
   }
   async prepare({workspace,agentPath}) {
     const launch=isolatedCursorLaunch({codexPath:this.codexPath,workspace,agentPath});
@@ -50,11 +51,11 @@ export class IsolatedRuntime {
         const settings='enabled = true\nallow_upstream_proxy = false\nenable_socks5 = false\nenable_socks5_udp = false\nproxy_url = '+q(proxy)+'\n';
         // No ambient proxy, local-network access, wildcard domains or model-specific endpoint.
         // api2.cursor.sh is the installed official build's authentication/backend default.
-        const toml='[features.network_proxy]\n'+settings+'[permissions.cursor.filesystem]\n'+fsRules+'\n[permissions.cursor.network]\n'+settings+'mode = "limited"\nallow_local_binding = false\n[permissions.cursor.network.domains]\n"api2.cursor.sh" = "allow"\n';
+        const toml='[features.network_proxy]\n'+settings+'[permissions.cursor.filesystem]\n'+fsRules+'\n[permissions.cursor.network]\n'+settings+'mode = '+q(this.networkMode)+'\nallow_local_binding = false\n[permissions.cursor.network.domains]\n"api2.cursor.sh" = "allow"\n';
         createOnce(join(codexHome,'config.toml'),toml);
         launch.args=['sandbox','-P','cursor','-C',root,'--include-managed-config','--',...launch.args.slice(launch.args.indexOf('--')+1)];
       }
-      return {...launch,handoff,confinedCommands:true,nodePath:node,network:this.networkEnabled?'native proxy: api2.cursor.sh only':'denied',
+      return {...launch,handoff,confinedCommands:true,nodePath:node,network:this.networkEnabled?'native proxy: api2.cursor.sh only; HTTP mode='+this.networkMode:'denied',
         cancel:()=>handoff.cancel()};
     } catch(error) {handoff.cancel();throw error;}
   }

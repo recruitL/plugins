@@ -17,7 +17,9 @@ node scripts/install-local.mjs /absolute/path/to/fresh-test-project
 
 本开发机已有 `cursor-delegate@personal`，沿用 `~/plugins/cursor-delegate`，不要再并行安装第二份。更新后让 App 重载插件，再实际调用 `cursor_status`；CLI 安装成功不能替代 App 验证。
 
-生产 MCP 服务必须配置 `CURSOR_DELEGATE_CODEX_SANDBOX`，否则拒绝启动 Cursor。`CURSOR_DELEGATE_NETWORK=cursor-api` 只允许原生代理访问已核验的 `api2.cursor.sh`；未设置时网络全部拒绝。不能用工具参数或任务文字更改这些配置。
+生产 MCP 服务必须配置 `CURSOR_DELEGATE_CODEX_SANDBOX`，否则拒绝启动 Cursor。`CURSOR_DELEGATE_NETWORK=cursor-api` 只允许原生代理访问已核验的 `api2.cursor.sh`；未设置时网络全部拒绝。默认 HTTP 模式 limited 只允许 GET/HEAD/OPTIONS，已实测会阻止 Cursor 必需的初始化 POST，不能用此默认模式宣称已可用。
+
+在用户明确授权后，可在本插件用户级 MCP 环境中设置 `CURSOR_DELEGATE_API_HTTP_MODE=full`。此设置只取消 `api2.cursor.sh` 的 HTTP 方法限制（不限于 POST），其域名允许列表、文件隔离、禁止直连和 SOCKS/UDP 禁用仍保留。它不是全局沙箱 full access；但仍是网络权限扩大，不应由模型通过工具参数或任务文字自行启用。缺省保持 limited；删除此环境项并重载即可回退。安装器不会自动打开它。
 
 ## 登录与派工
 

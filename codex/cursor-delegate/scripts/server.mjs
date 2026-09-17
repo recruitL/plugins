@@ -154,6 +154,7 @@ export function serve() {
     isolatedRuntime: process.env.CURSOR_DELEGATE_CODEX_SANDBOX ? new IsolatedRuntime({
       codexPath: process.env.CURSOR_DELEGATE_CODEX_SANDBOX,
       networkEnabled: process.env.CURSOR_DELEGATE_NETWORK === "cursor-api",
+      networkMode: process.env.CURSOR_DELEGATE_API_HTTP_MODE ?? "limited",
     }) : undefined,
     authorizationStatus: () => host.authorizationStatus(),
   });

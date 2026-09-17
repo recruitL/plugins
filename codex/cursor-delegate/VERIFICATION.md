@@ -240,3 +240,14 @@ provider reason: Not in allowlist: head -50
 新增通用内部错误含底层 EPERM、敏感文本不泄漏、有界嵌套数据、认证与 session/new 失败区分的回归验证。诊断改动不代表原生登录故障已修复；真实登录、代码测试和同会话返修仍未通过。
 
 本轮确定性测试 38/38 通过，插件结构校验通过。诊断版已备份并安装为 0.1.0+codex.20260917062308；备份 before-auth-diagnostics-20260917T062308Z，原 .mcp.json 完全保留。当前 App 中仍是旧 MCP 进程，诊断字段的真实 App 返回及故障根因尚待宿主重载后验证。
+
+
+## 2026-09-17 定位到初始化 POST 被代理方法策略拒绝
+
+重载后的 App 诊断字段已实际可见。真实会话 70b05100-7c64-4a80-970c-ad0f3270ac5e 在 authenticate 返回 -32603，认证未完成，进程退出，未派工。随后使用无真实凭据的同隔离 HTTPS 探针向官方 ServerConfigService/GetServerConfig 发送空 POST，返回 403，正文为 Method not allowed in limited mode.。这证明已有代理策略阻断必需接口，不是用户需要再重复网页登录。回执见 app-auth-method-policy-20260917.json；修正这一阻塞不等于其他认证步骤已验证。
+
+已准备默认关闭的 CURSOR_DELEGATE_API_HTTP_MODE=full，只有用户级 MCP 配置能选取；域名仍固定 api2.cursor.sh，不增加工具参数或人类授权伪造入口。full 会取消该域名全部 HTTP 方法限制，不是仅允许 POST；真正启用前需人类授权。当前用户配置与已加载 App 服务均未改变。
+
+真实原生代理在两个独立回环测试目录各通过 6 项检查：limited 的 POST 被拒绝；full 的 POST 到达无敏感哨兵；两者均继续拒绝未允许地址、明确禁止地址和直接 socket。回执 network-methods-20260917.json。未在 full 模式向外部服务发送请求，没有真实凭据或模型调用，不能当作 App 登录成功。确定性测试 40/40 通过。
+
+策略解释与官方网络代理文档一致：https://github.com/openai/codex/blob/main/codex-rs/network-proxy/README.md 。当前配置仅有 limited/full 两种模式；没有新增自制代理或全局关闭沙箱。

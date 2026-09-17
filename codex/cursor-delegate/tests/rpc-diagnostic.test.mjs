@@ -10,3 +10,8 @@ test('unknown errors stay unclassified and nested cyclic provider data stays bou
  const e={message:'arbitrary private text'};e.cause=e;
  assert.deepEqual(rpcDiagnostic(e,'session/new'),{method:'session/new',code:null,signals:[],detail_withheld:true});
 });
+
+test('method-policy diagnostics distinguish HTTP denial without exposing raw provider text',()=>{
+ assert.deepEqual(rpcDiagnostic({code:-32603,data:{details:'[permission_denied] HTTP 403 SECRET'}},'authenticate').signals,['http_403','permission_denied']);
+ assert.deepEqual(rpcDiagnostic({data:'Method not allowed in limited mode.'},'authenticate').signals,['method_policy_denied']);
+});
