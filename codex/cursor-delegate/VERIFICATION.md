@@ -137,3 +137,14 @@ provider reason: Not in allowlist: head -50
 19 项确定性测试通过，包括新增加的能力类型/命名空间校验和伪造表单证明测试；MCP 子进程测试检查新状态字段。首次回归因既有断言尚未包含新增诊断字段而失败，更新预期后完整通过。
 
 没有新增权限批准工具、等待却无法批准的会话状态、隐藏能力开关或自动放行。原先计划中的可信批准→单次执行无法在当前已核验接口上安全接通，因此等待/放行分支没有伪装成已完成。新增字段的 App 加载须在安装后实际 cursor_status 返回中另行核验；此前真实 Cursor 测试不能替代这一项。
+
+
+## 2026-09-17 App 新字段复核与 ACP 隔离限制
+
+当前 App 真正调用 `cursor_status` 已返回新版 `host_interaction.human_authorization`：普通表单能力为 true，user_verification_advertised=false，available=false，permission_request_action=deny_before_execution。服务为 idle，根目录仍是指定测试项目。至此该字段的 App 加载已验证；没有新建 Cursor 会话，也没有重试被拒绝的测试。
+
+为核验升级是否能修复 ACP 沙箱，另行从官方安装脚本指定的下载地址取得 darwin/arm64 2026.09.15-d2fe57e 发行包，仅解压到临时目录并执行 --version/--help。没有安装、替换现有 CLI、读取复制认证或开启 auto-review。
+
+静态检查结果：新包 `2698.index.js` 中 ACP shared-services 使用 permissions-adapter 和 permissions-file-provider；`2618.index.js` 中这两个适配器的 getPermissions 均返回 userConfiguredPolicy.type=insecure_none。ACP session-resources 将该 provider 传给 InteractivePermissionsService，shell 权限请求展示命令/理由，不携带可验证的沙箱执行凭证。本机旧版相应路径也返回 insecure_none。该证据不能替代实际 OS 越界执行测试，但足以否定“传入 --sandbox enabled 就证明 ACP 隔离成立”的说法。未运行任何越界系统调用，也未放行任何被阻止的命令。
+
+修正运行时状态和 Skill/README：明确 sandbox 是请求参数，sandbox_enforcement_verified=false；不再宣称 Cursor 自带沙箱已成为可靠边界。单元/协议回归仍为 19 项，不增加一次真实 Cursor 调用。当前两项限制分别是可信人类授权不可用、ACP OS 隔离未验证；整体闭环仍未通过。既有 deny 策略只处理实际到达桥接的权限请求，不能证明所有原生操作都被中介。

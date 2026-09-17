@@ -8,8 +8,11 @@ project authorization; do not require a new approval for ordinary work.
 
 1. Read `cursor_status`. `cursor_start` uses an absolute authorized workspace
    inside the configured root. Keep the returned workspace and opaque session ID.
-   The root check coordinates scope; it is NOT an OS sandbox. Cursor runs its own
-   native sandbox, not Codex's. Never edit the files Cursor is currently changing.
+   The root check coordinates scope; it is NOT an OS sandbox. Cursor runs a separate
+   process with --sandbox enabled, but ACP OS isolation is unverified and is not
+   inherited from Codex. Do not infer containment from that flag or broaden
+   permissions. Keep integration tests in disposable non-sensitive projects.
+   Never edit the files Cursor is currently changing.
 2. Use `cursor_prompt` with a unique request ID, the bounded assignment in `scope`
    and the task in `prompt`. User project scope is the outer boundary; Codex can
    adjust the assignment within that boundary. Do not change fixed physics or

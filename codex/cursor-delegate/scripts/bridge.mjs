@@ -30,7 +30,7 @@ export function boundedPath(root, cwd) {
   return path;
 }
 
-// Scope validation is coordination only. Cursor's own sandbox is the execution boundary.
+// Scope validation is coordination only. A CLI flag does not attest ACP isolation.
 export class Bridge extends EventEmitter {
   constructor({
     root,
@@ -66,6 +66,8 @@ export class Bridge extends EventEmitter {
         state: "idle",
         root: this.root ?? null,
         configured: Boolean(this.root),
+        sandbox: "requested via --sandbox enabled; ACP enforcement unverified",
+        sandbox_enforcement_verified: false,
         safety_latched: this.safetyLatch,
         permission_policy: "deny; no model-accessible approval tool",
       };
@@ -85,7 +87,8 @@ export class Bridge extends EventEmitter {
       result_length: s.output.length,
       recovery_attempts: s.recovery,
       pid: this.child?.pid ?? null,
-      sandbox: "Cursor --sandbox enabled; not inherited from Codex",
+      sandbox: "requested via --sandbox enabled; ACP enforcement unverified",
+      sandbox_enforcement_verified: false,
       permission_policy: "deny",
       launch: {
         command: this.command,

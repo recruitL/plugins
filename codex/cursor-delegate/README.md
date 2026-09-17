@@ -35,7 +35,7 @@ node scripts/install-local.mjs /absolute/path/to/disposable-test-project
 
 ## 权限边界
 
-MCP 服务是用户级 Node 进程。它启动单独的 Cursor 进程组，显式使用 `--sandbox enabled acp`。**Codex 的沙箱不会自动覆盖 Cursor；根目录检查和派工提示也不是 OS 安全隔离。** 原生沙箱是否覆盖当前版本的全部工具尚未做真实写入验证。
+MCP 服务是用户级 Node 进程。它启动单独的 Cursor 进程组，显式使用 `--sandbox enabled acp`。**Codex 的沙箱不会自动覆盖 Cursor；根目录检查和派工提示也不是 OS 安全隔离。** 启动参数只是请求，不是隔离证明。已检查的 2026.05.28 和 2026.09.15 发行包中，ACP 的权限适配器返回 `insecure_none`；不能依赖该参数声称已建立 OS 隔离。状态中的 `sandbox_enforcement_verified=false` 明确表示未验证。不要扩大原生允许列表，首版保持在无敏感测试项目中。
 
 ACP `session/request_permission` 一律返回取消结果并终止会话；未知的客户端操作同样拒绝。没有允许权限的 MCP 工具，没有 `user_approved` 参数，普通计划接受不等于安全授权。安全拒绝或取消后，本服务进程锁定，不能通过 close/start 或 recover 继续；不得以重启服务绕过拒绝。
 

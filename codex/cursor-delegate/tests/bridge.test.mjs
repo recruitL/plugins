@@ -55,7 +55,9 @@ const prompt = (b, s, p, id = "task-1") =>
   });
 test("same ACP session supports implementation and repair; duplicate prompt does not run twice", async (t) => {
   const { b, root } = setup(t);
+  assert.equal(b.status().sandbox_enforcement_verified, false);
   const s = await b.start({ cwd: root });
+  assert.equal(s.sandbox_enforcement_verified, false);
   prompt(b, s, "first");
   await until(b, "completed");
   assert.throws(() => prompt(b, s, "duplicate"), /Duplicate/);
