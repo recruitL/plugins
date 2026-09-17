@@ -148,3 +148,8 @@ provider reason: Not in allowlist: head -50
 静态检查结果：新包 `2698.index.js` 中 ACP shared-services 使用 permissions-adapter 和 permissions-file-provider；`2618.index.js` 中这两个适配器的 getPermissions 均返回 userConfiguredPolicy.type=insecure_none。ACP session-resources 将该 provider 传给 InteractivePermissionsService，shell 权限请求展示命令/理由，不携带可验证的沙箱执行凭证。本机旧版相应路径也返回 insecure_none。该证据不能替代实际 OS 越界执行测试，但足以否定“传入 --sandbox enabled 就证明 ACP 隔离成立”的说法。未运行任何越界系统调用，也未放行任何被阻止的命令。
 
 修正运行时状态和 Skill/README：明确 sandbox 是请求参数，sandbox_enforcement_verified=false；不再宣称 Cursor 自带沙箱已成为可靠边界。单元/协议回归仍为 19 项，不增加一次真实 Cursor 调用。当前两项限制分别是可信人类授权不可用、ACP OS 隔离未验证；整体闭环仍未通过。既有 deny 策略只处理实际到达桥接的权限请求，不能证明所有原生操作都被中介。
+
+
+### 用户重启后的 App 实际验证
+
+用户确认重启 App 后，本任务再次真实调用 cursor_status。返回新版 sandbox 字段以及 sandbox_enforcement_verified=false，证明最新运行时已被 App 加载。state=idle，configured=true，根目录仍为指定测试项目。host_interaction.human_authorization.available=false，user_verification_advertised=false，permission_request_action=deny_before_execution。未启动 Cursor、未请求授权、未重试被拒绝操作。新版加载验证通过；可信授权与 ACP 隔离限制未消除，代码执行测试与同会话返修仍未通过。
