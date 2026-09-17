@@ -254,3 +254,18 @@ provider reason: Not in allowlist: head -50
 
 
 用户随后明确同意本插件 api2.cursor.sh 全部 HTTP 方法。现已仅增加用户级 CURSOR_DELEGATE_API_HTTP_MODE=full 并安装 0.1.0+codex.20260917085751；修改前备份 before-api-methods-20260917T085751Z。核对删除新增环境项后 .mcp.json 与原配置相同，安装缓存代码一致。相同隔离运行器的无凭据初始化 POST 返回官方 JSON 401，不再是代理 method-policy 403，证明此前方法拦截已解除；没有模型调用。已安装配置的 App 重载、真实登录与代码闭环仍待验证，不能把 401 记成认证成功。
+
+
+## 2026-09-17 App 认证与建会话成功，模型连接仍被拒绝
+
+当前 App 已载入 full 方法配置，真实 Cursor 认证和 session/new 成功。新会话的第一条任务仅要求返回普通技术问题和计划，不读写文件、不运行命令。结果为 `HTTPS proxy CONNECT failed: 403 Forbidden`，未产生技术回答或代码；工具 state=completed/end_turn 只代表协议本轮结束，不能计为完成任务。回执：tests/receipts/app-model-connect-20260917.json。
+
+保留当前会话，未重发任务。只读检查该启动器实际监听端口后，向同一代理发送不带凭据的 api2.cursor.sh CONNECT，返回 200；不是一次模型调用。被拒绝模型连接的具体域名没有留存，不能声称已经定位。官方文档列出 Agent 使用 api5 及其 agent/agentn 区域子域，而已安装配置只允许 api2。
+
+未扩大已安装网络权限，未重发模型请求。随后依用户纠正，停止自建代理扩展路线，重新核验已有实现。arikon 上游 ce257353 的会话生命周期离线测试实际通过；其 initialize 路径复用已有认证，不执行交互式 cursor_login。该证据不等于本机原生认证、权限边界或 App 代码闭环通过。
+
+## 2026-09-17 直接复用上游的原生登录预检
+
+官方状态命令确认现有 Cursor 登录有效。上游配合已安装五月版本无法启动，静态核验该版本无 --auto-review 参数；上游测试基线为八月版本。改用已下载但未安装的官方 2026.09.15 发行包，未修改的上游 Runtime 成功创建真实 ACP 空会话，且无需 authenticate/人工登录。数据与偏好在新测试目录，未发送模型 prompt，关闭会话后退出。回执见 upstream-native-auth-20260917.json。
+
+已准备直接加载固定上游的候选入口及权限拒绝适配；尚未安装、未替换 App 入口。原生执行不继承旧外层 OS 隔离，安全边界不能沿用旧测试结论。详细差异见 UPSTREAM-REUSE.md。

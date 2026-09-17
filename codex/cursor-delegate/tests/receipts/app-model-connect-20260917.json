@@ -1,0 +1,24 @@
+{
+  "kind": "actual Codex App MCP and real Cursor ACP; no model output accepted",
+  "bridge_session_id": "193a4b5e-ce88-4177-a637-d4b03d93ca32",
+  "cursor_session_id": "58ec1803-02e6-4312-bf7f-1ff8d23243c8",
+  "cwd": "/Users/yl/Desktop/codex-cursor-plugin-work/app-live-qfwv04ku/r3",
+  "turn_id": "a1761b77-17d8-4ecd-849f-868849d9cf53",
+  "authentication_completed": true,
+  "session_created": true,
+  "state": "completed",
+  "task_success": false,
+  "model_result": "Error: T: [internal] HTTPS proxy CONNECT failed: 403 Forbidden",
+  "actual_denied_host": null,
+  "followup_read_only_diagnostic": {
+    "target": "api2.cursor.sh:443",
+    "via_actual_current_proxy": true,
+    "status": "HTTP/1.1 200 OK",
+    "credentials_sent": false,
+    "model_request_sent": false
+  },
+  "new_agent_domains_enabled": false,
+  "code_written": false,
+  "tests_run_by_cursor": false,
+  "same_session_repair": false
+}
